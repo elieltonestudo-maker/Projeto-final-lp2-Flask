@@ -10,7 +10,6 @@ class ProcessadorPDF:
         self.texto_completo = ""
 
     def extrair_texto(self):
-        # Abre o PDF e extrai o texto bruto
         with pdfplumber.open(self.arquivo) as pdf:
             for pagina in pdf.pages:
                 texto = pagina.extract_text()
@@ -27,7 +26,6 @@ class ProcessadorPDF:
         while i < len(linhas):
             linha = linhas[i].strip()
             
-            # Encontra o Lote
             match = re.match(r'^(\d{4,5})\s*-\s*(.*)', linha)
             
             if match:
@@ -37,13 +35,13 @@ class ProcessadorPDF:
                 if (i + 1) < len(linhas):
                     texto_bloco += " " + linhas[i+1].strip()
 
-                # 1. Extrai o Valor Total
+                # Valor Total
                 match_valor = re.search(r'R\$\s*([\d,]+)', texto_bloco)
                 valor = float(match_valor.group(1).replace(',', '.')) if match_valor else 0.0
                 if match_valor: 
                     texto_bloco = texto_bloco.replace(match_valor.group(0), '')
 
-                # 2. Extrai o País
+                # País
                 match_pais = re.match(r'^([A-Za-zÀ-ÿ\s]+?)(?:\s*-|\s*\d)', texto_bloco)
                 if match_pais:
                     pais = match_pais.group(1).strip()
@@ -51,7 +49,7 @@ class ProcessadorPDF:
                 else:
                     pais = "Desconhecido"
 
-                # 3. Extrai o Estado
+                # Estado
                 estado_encontrado = "FE"
                 for est in estados_validos:
                     if re.search(rf'\b{est}\b', texto_bloco):
@@ -59,45 +57,40 @@ class ProcessadorPDF:
                         texto_bloco = re.sub(rf'\b{est}\b', '', texto_bloco)
                         break
 
-                # 4. Extrai o Pick
+                # Pick
                 pick = ""
                 match_pick = re.search(r'\b[Pp]-?\s*(\d+)\b', texto_bloco)
                 if match_pick:
                     pick = f"P-{match_pick.group(1)}"
                     texto_bloco = texto_bloco.replace(match_pick.group(0), '')
 
-                # 5. Extrai o Ano (com intervalos)
+                # Ano
                 ano = ""
                 match_ano = re.search(r'\b((?:19|20)\d{2}(?:\s*-\s*(?:19|20)\d{2})?)\b', texto_bloco)
                 if match_ano:
                     ano = match_ano.group(1).replace(' ', '')
                     texto_bloco = texto_bloco.replace(match_ano.group(0), '')
 
-                # 6. LIMPEZA BRUTA E DEFINITIVA
-                # O que sobrou de texto, nós vamos quebrar em palavras.
-                # Vamos remover lixos e pegar APENAS a primeira e a segunda palavra (Valor e Moeda).
-                
-                # Tira lixos antes de separar as palavras
+                # Quantidade e Descrição
                 texto_bloco = texto_bloco.replace('polímero', '').replace('polimero', '').replace('soberba', '')
                 texto_bloco = texto_bloco.replace('R$', '').replace('$', '').replace('(', '').replace(')', '')
-                
-                # Separa as palavras
+
+                quantidade = 1
+                match_qtd = re.search(r'\b(\d+)\s*$', texto_bloco.strip())
+                if match_qtd:
+                    num_achado = int(match_qtd.group(1))
+                    if 1 <= num_achado <= 10:
+                        quantidade = num_achado
+                        texto_bloco = re.sub(rf'\b{match_qtd.group(1)}\s*$', '', texto_bloco.strip())
+
                 palavras = texto_bloco.split()
                 palavras_limpas = []
-                
                 for p in palavras:
-                    # Remove o "1" solto e o "2" solto (quantidade)
-                    if p in ['1', '2']: continue
-                    # Remove números com vírgulas (ex: 0,00)
-                    if ',' in p: continue
-                    # Remove hifens soltos
-                    if p == '-': continue
-                    
+                    if ',' in p or p == '-' or p in ['1', '2']:
+                        continue
                     palavras_limpas.append(p)
                 
-                # Pega apenas as 2 primeiras palavras (Ex: "10" e "Mil Pesos" -> "10 Mil Pesos")
-                # Se tiver 3 palavras como "10" "Kip" "1975", o ano já foi removido antes
-                descricao_final = ' '.join(palavras_limpas[:2]).strip().title()
+                descricao_final = ' '.join(palavras_limpas[:3]).strip().title()
 
                 cedulas_extraidas.append({
                     'codigo': lote,
@@ -106,6 +99,7 @@ class ProcessadorPDF:
                     'ano': ano,
                     'estado': estado_encontrado,
                     'pick': pick,
+                    'quantidade': quantidade,
                     'valor': valor
                 })
                 
@@ -113,8 +107,8 @@ class ProcessadorPDF:
             else:
                 i += 1
 
-        return cedulas_extraidas
-
+        return cedulas_extraidas # ESSA LINHA É CRUCIAL!
+    
 # --- FÁBRICA DA APLICAÇÃO FLASK ---
 def create_app():
     app = Flask(__name__)

@@ -8,65 +8,58 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; }
         .header { text-align: center; padding: 20px; color: var(--gold-accent); font-size: 24px; font-weight: bold; }
         .tabs-container { display: flex; background: var(--panel-bg); border-bottom: 1px solid var(--border-color); padding: 0 20px; }
-        .tab { padding: 15px 30px; cursor: pointer; font-size: 14px; font-weight: bold; color: #888; border-bottom: 3px solid transparent; }
+        .tab { padding: 15px 30px; cursor: pointer; font-size: 14px; font-weight: bold; color: #888; border-bottom: 3px solid transparent; transition: 0.2s; }
+        .tab:hover { color: var(--text-color); }
         .tab.active { color: var(--gold-accent); border-bottom: 3px solid var(--gold-accent); }
         .tab-content { display: none; padding: 20px; max-width: 1400px; margin: 0 auto; }
         .tab-content.active { display: block; }
         
-        /* Ajuste do Painel para segurar o botão + */
         .panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-bottom: 20px; position: relative; padding-bottom: 80px; }
         .panel-title { color: var(--gold-accent); margin-top: 0; font-size: 16px; }
-        
         .input-group { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-        input[type="text"], input[type="number"], select { background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 10px; border-radius: 5px; outline: none; }
-        select { cursor: pointer; }
-        .btn { background: var(--gold-accent); color: #000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        input[type="text"], input[type="number"], select { background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 10px; border-radius: 5px; outline: none; transition: border 0.2s; }
+        input:focus, select:focus { border-color: var(--gold-accent); }
+        
+        /* BOTÕES GERAIS */
+        .btn { background: var(--gold-accent); color: #000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.3s ease; }
+        .btn:hover { transform: scale(1.02); box-shadow: 0 0 10px rgba(241, 196, 15, 0.5); opacity: 0.9; }
+
         .btn-outline { background: transparent; border: 1px solid var(--gold-accent); color: var(--gold-accent); }
+        .btn-outline:hover { background: var(--gold-accent); color: #000; transform: scale(1.02); box-shadow: 0 0 10px rgba(241, 196, 15, 0.5); }
+
         .btn-danger { background: transparent; border: 1px solid #ff4d4d; color: #ff4d4d; }
-        .btn-danger:hover { background: #ff4d4d; color: #fff; }
-        
-        /* Botão + posicionado no canto inferior esquerdo do painel */
-        .btn-add-linha { 
-            position: absolute; 
-            bottom: 20px; 
-            left: 20px; 
-            background: var(--panel-bg); 
-            color: var(--gold-accent); 
-            border: 2px solid var(--gold-accent); 
-            border-radius: 50%; 
-            width: 40px; 
-            height: 40px; 
-            font-size: 24px; 
-            cursor: pointer; 
-            z-index: 10; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            transition: all 0.3s; 
-            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-        }
-        
-        .btn-add-linha:hover { 
-            background: var(--gold-accent); 
-            color: #000; 
-            transform: scale(1.1); 
-        }
-        
-        .btn-del-linha { background: none; border: none; color: #ff4d4d; font-size: 16px; cursor: pointer; }
-        
-        /* Tabela com rolagem */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; display: block; max-height: 400px; overflow-y: auto; }
+        .btn-danger:hover { background: #ff4d4d; color: #fff; transform: scale(1.02); box-shadow: 0 0 10px rgba(255, 77, 77, 0.5); }
+
+        .btn-undo { background: transparent; border: 1px solid #888; color: #888; }
+        .btn-undo:hover { background: #888; color: #fff; transform: scale(1.02); box-shadow: 0 0 10px rgba(136, 136, 136, 0.5); }
+
+        /* BOTÃO ADICIONAR (+) */
+        .btn-add-linha { position: absolute; bottom: 20px; left: 20px; background: var(--panel-bg); color: var(--gold-accent); border: 2px solid var(--gold-accent); border-radius: 50%; width: 40px; height: 40px; font-size: 24px; cursor: pointer; transition: all 0.3s; z-index: 10; display: flex; align-items: center; justify-content: center; }
+        .btn-add-linha:hover { background: var(--gold-accent); color: #000; transform: scale(1.1); box-shadow: 0 0 15px rgba(241, 196, 15, 0.6); }
+
+        /* BOTÃO EXCLUIR LINHA (X) */
+        .btn-del-linha { background: none; border: none; color: #ff4d4d; font-size: 16px; cursor: pointer; transition: all 0.2s ease; }
+        .btn-del-linha:hover { color: #ff0000; transform: scale(1.3); text-shadow: 0 0 8px rgba(255, 0, 0, 0.6); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; display: block; max-height: 450px; overflow-y: auto; }
         th, td { border-bottom: 1px solid var(--border-color); padding: 15px 10px; text-align: left; font-size: 13px; white-space: nowrap; }
         th { color: var(--gold-accent); text-transform: uppercase; }
         thead th { position: sticky; top: 0; background: var(--panel-bg); z-index: 10; border-bottom: 2px solid var(--gold-accent); }
         
-        .money-input-container { display: flex; align-items: center; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 5px; padding-left: 8px; }
+        .money-input-container { display: flex; align-items: center; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 5px; padding-left: 8px; transition: border 0.2s; }
+        .money-input-container:focus-within { border-color: var(--gold-accent); }
         .money-symbol { color: #888; font-weight: bold; font-size: 12px; }
         .money-input-container input { border: none !important; background: transparent !important; padding-left: 5px; width: 70px; }
         
+        /* RODAPÉ DE TOTAIS */
+        .totais-rodape { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px; background: #2a2a2a; border-radius: 8px; border-left: 4px solid var(--gold-accent); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .totais-info { display: flex; gap: 30px; font-size: 15px; }
+        .totais-info span { color: var(--gold-accent); font-weight: bold; }
+
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-box { background: var(--panel-bg); padding: 30px; border-radius: 8px; border: 1px solid var(--gold-accent); text-align: center; max-width: 400px; width: 90%; }
+        .modal-box { background: var(--panel-bg); padding: 30px; border-radius: 8px; border: 1px solid var(--gold-accent); text-align: center; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         .modal-actions { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
+        
         .data-invalida { border: 1px solid #ff4d4d !important; color: #ff4d4d !important; }
         td input[type="text"], td input[type="number"], td select { padding: 8px; font-size: 13px; }
     </style>
@@ -107,25 +100,19 @@
 
         <div class="panel" style="padding-bottom: 80px;">
             <h3 class="panel-title">📋 CÉDULAS DO LOTE</h3>
+            
+            <!-- BARRA DE AÇÕES EM MASSA (Agora com botão Desfazer) -->
             <div class="input-group" style="justify-content: space-between; margin-bottom: 15px; padding: 10px; background: #2a2a2a; border-radius: 5px;">
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                     <label style="color: var(--gold-accent); font-weight: bold;">Ações em Massa:</label>
                     <input type="text" id="massa-data" placeholder="DD/MM/AAAA" style="width: 120px;" oninput="aplicarMascaraData(this)">
                     <input type="text" id="massa-ref" placeholder="Nº Leilão/Lote" style="width: 120px;">
                     <select id="massa-estado" style="width: 100px;">
-                        <option value="">Estado</option>
-                        <option>FE</option>
-                        <option>S/FE</option>
-                        <option>S</option>
-                        <option>MBC/S</option>
-                        <option>MBC</option>
-                        <option>BC/MBC</option>
-                        <option>BC</option>
-                        <option>R</option>
-                        <option>UTG</option>
+                        <option value="">Estado</option><option>FE</option><option>S/FE</option><option>S</option><option>MBC/S</option><option>MBC</option><option>BC/MBC</option><option>BC</option><option>R</option><option>UTG</option>
                     </select>
                     <button class="btn btn-outline" onclick="aplicarEmMassa()">Aplicar</button>
                     <button class="btn btn-danger" onclick="abrirModalExclusaoMassa()">🗑️ Excluir</button>
+                    <button class="btn btn-undo" onclick="desfazerExclusao()" title="Desfazer última exclusão">↺ Desfazer</button>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn">📥 Importar Texto</button>
@@ -139,17 +126,28 @@
             <table>
                 <thead>
                     <tr>
-                        <th><input type="checkbox" id="check-todos" onclick="selecionarTodos(this)"></th><th>Nº</th><th>Data</th><th>Ref. / Lote</th><th>País</th><th>Valor</th><th>Pick</th><th>Ano</th><th>Estado</th><th>Martelo</th><th>Taxa (%)</th><th>Subtotal</th><th>Rateio</th><th>Custo Final</th><th>Ação</th>
+                        <th><input type="checkbox" id="check-todos" onclick="selecionarTodos(this)"></th>
+                        <th>Nº</th><th>Data</th><th>Ref. / Lote</th><th>País</th><th>Valor</th><th>Pick</th><th>Ano</th><th>Estado</th>
+                        <th>Qtd</th> <!-- NOVA COLUNA AQUI -->
+                        <th>Martelo</th><th>Taxa (%)</th><th>Subtotal</th><th>Rateio</th><th>Custo Final</th><th>Ação</th>
                     </tr>
                 </thead>
                 <tbody id="corpo-tabela"></tbody>
             </table>
-            
-            <!-- BOTÃO + AGORA DENTRO DO PAINEL -->
             <button class="btn-add-linha" onclick="adicionarLinhaVazia()" title="Adicionar cédula">+</button>
+
+            <!-- RODAPÉ DE TOTAIS -->
+            <div class="totais-rodape">
+                <div class="totais-info">
+                    <div>Total Cédulas: <span id="total-cedulas">R$ 0,00</span></div>
+                    <div>Frete + Extras: <span id="total-frete">R$ 0,00</span></div>
+                </div>
+                <div style="font-size: 20px; font-weight: bold; color: #fff;">
+                    TOTAL: <span id="total-geral" style="color: var(--gold-accent);">R$ 0,00</span>
+                </div>
+            </div>
         </div>
         
-        <!-- BOTÃO SALVAR AGORA COM MARGEM E TAMANHO CONTROLADO -->
         <button class="btn" style="width: 100%; max-width: 600px; display: block; margin: 0 auto; padding: 15px; font-size: 16px;" onclick="salvarLote()">💾 SALVAR LOTE COMPLETO</button>
     </div>
 
@@ -158,9 +156,9 @@
     </div>
 
     <script>
-        let tipoExclusao = "";
+        let historicoExclusao = []; // Guarda as linhas apagadas
 
-        function fecharModal() { document.getElementById('modal-confirmacao').style.display = 'none'; tipoExclusao = ""; }
+        function fecharModal() { document.getElementById('modal-confirmacao').style.display = 'none'; }
 
         function aplicarMascaraData(input) {
             let valor = input.value.replace(/\D/g, ''); if (valor.length > 8) valor = valor.slice(0, 8);
@@ -212,7 +210,8 @@
             recalcularTabela();
         }
 
-        function criarLinhaHTML(p="", v="", a="", m=0, est="FE", pk="") { // <-- Adicionado o pk
+        // Função para criar a linha (agora com campo QTD)
+        function criarLinhaHTML(p="", v="", a="", m=0, est="FE", pk="", qtd="1") {
             const estados = ["FE", "S/FE", "S", "MBC/S", "MBC", "BC/MBC", "BC", "R", "UTG"];
             let optionsEstado = estados.map(e => `<option value="${e}" ${e === est ? 'selected' : ''}>${e}</option>`).join('');
 
@@ -223,9 +222,10 @@
                 <td><input type="text" class="input-ref" placeholder="Lote" style="width:80px"></td>
                 <td><input type="text" class="input-pais" value="${p}" style="width:100px"></td>
                 <td><input type="text" class="input-valor-facial" value="${v}" style="width:80px"></td>
-                <td><input type="text" class="input-pick" value="${pk}" placeholder="Pick" style="width:70px"></td> <!-- NOVO INPUT -->
+                <td><input type="text" class="input-pick" value="${pk}" placeholder="Pick" style="width:60px"></td>
                 <td><input type="text" class="input-ano" value="${a}" style="width:60px"></td>
                 <td><select class="input-estado" style="width:80px">${optionsEstado}</select></td>
+                <td><input type="number" class="input-qtd" value="${qtd ? qtd : 1}" style="width:50px" oninput="recalcularTabela()"></td>
                 <td><div class="money-input-container"><span class="money-symbol">R$</span><input type="number" class="input-martelo" value="${m>0?m.toFixed(2):''}" oninput="recalcularTabela()"></div></td>
                 <td style="display:flex;gap:5px"><input type="checkbox" class="check-isento" onchange="alternarIsencao(this)"><input type="number" class="input-taxa" value="${document.getElementById('tipo-lote').value==='Leilão Oficial'?5:0}" style="width:50px" oninput="recalcularTabela()"></td>
                 <td class="td-subtotal">R$ 0,00</td><td class="td-rateio">R$ 0,00</td><td class="td-custo-final">R$ 0,00</td>
@@ -233,18 +233,12 @@
             return tr;
         }
 
-        // AQUI O JAVASCRIPT USA OS DADOS SEPARADOS QUE O PYTHON ENVIA
         function renderizarTabela(cedulas) {
             const tbody = document.getElementById('corpo-tabela'); tbody.innerHTML = '';
             cedulas.forEach(c => {
-                // Passa o c.pick no final
-                const tr = criarLinhaHTML(c.pais, c.descricao, c.ano, c.valor, c.estado, c.pick); 
-                
-                tr.querySelector('.input-ref').value = c.codigo; 
-                
-                // Preenche o input do Pick (se vier do Python)
-                tr.querySelector('.input-pick').value = c.pick || '';
-
+                // Passando c.quantidade e c.ano corretamente!
+                const tr = criarLinhaHTML(c.pais, c.descricao, c.ano, c.valor, c.estado, c.pick, c.quantidade);
+                tr.querySelector('.input-ref').value = c.codigo; // Preenche o Lote
                 tbody.appendChild(tr);
             });
             atualizarNumeracao(); recalcularTabela();
@@ -256,11 +250,18 @@
             tbody.closest('table').scrollTop = tbody.closest('table').scrollHeight;
         }
 
+        // --- SISTEMA DE EXCLUSÃO COM HISTÓRICO ---
         function abrirModalExclusaoLinha(btn) {
             const linha = btn.closest('tr');
             document.getElementById('modal-mensagem').innerText = "Excluir esta cédula?";
             document.getElementById('modal-confirmacao').style.display = 'flex';
-            document.getElementById('btn-confirmar-exclusao').onclick = () => { linha.remove(); atualizarNumeracao(); recalcularTabela(); fecharModal(); };
+            document.getElementById('btn-confirmar-exclusao').onclick = () => {
+                // O SEGREDO: Clona o elemento com todos os valores digitados antes de apagar
+                const linhaClonada = linha.cloneNode(true);
+                historicoExclusao.push(linhaClonada); 
+                linha.remove(); 
+                atualizarNumeracao(); recalcularTabela(); fecharModal();
+            };
         }
 
         function abrirModalExclusaoMassa() {
@@ -269,8 +270,32 @@
             document.getElementById('modal-mensagem').innerText = `Excluir ${sel.length} cédula(s)?`;
             document.getElementById('modal-confirmacao').style.display = 'flex';
             document.getElementById('btn-confirmar-exclusao').onclick = () => {
-                sel.forEach(cb => cb.closest('tr').remove()); atualizarNumeracao(); recalcularTabela(); fecharModal();
+                sel.forEach(cb => {
+                    const linha = cb.closest('tr');
+                    const linhaClonada = linha.cloneNode(true); // Clona
+                    historicoExclusao.push(linhaClonada); // Salva
+                    linha.remove();
+                });
+                atualizarNumeracao(); recalcularTabela(); fecharModal();
             };
+        }
+
+        function desfazerExclusao() {
+            if (historicoExclusao.length === 0) {
+                alert("Não há exclusões recentes para desfazer.");
+                return;
+            }
+            const tbody = document.getElementById('corpo-tabela');
+            
+            // Pega o elemento que foi clonado
+            const linhaRestaurada = historicoExclusao.pop();
+            
+            // Adiciona ele de volta na tabela
+            tbody.appendChild(linhaRestaurada);
+            
+            // Força a atualização dos cálculos e da numeração
+            atualizarNumeracao(); 
+            recalcularTabela();
         }
 
         function atualizarNumeracao() { document.querySelectorAll('#corpo-tabela tr').forEach((l,i) => { const td = l.querySelector('.td-numero'); if(td) td.innerText = i+1; }); }
@@ -315,18 +340,60 @@
         function recalcularTabela() {
             const f = parseFloat(document.getElementById('frete-lote').value) || 0;
             const cE = document.getElementById('check-extras').checked ? (parseFloat(document.getElementById('input-extras').value) || 0) : 0;
-            const vT = f + cE; let sM = 0;
+            const valorTotalFrete = f + cE; 
+            
+            let somaMartelos = 0;
+            let totalCedulasBruto = 0;
             const l = document.querySelectorAll('#corpo-tabela tr');
-            l.forEach(li => { const im = li.querySelector('.input-martelo'); if(im) sM += parseFloat(im.value) || 0; });
-            l.forEach(li => {
-                const im = li.querySelector('.input-martelo'); const it = li.querySelector('.input-taxa');
-                if(!im) return;
-                const m = parseFloat(im.value) || 0; const t = parseFloat(it.value) || 0;
-                const s = m + (m * (t/100)); let r = 0; if(sM > 0) r = (m / sM) * vT;
-                li.querySelector('.td-subtotal').innerText = `R$ ${s.toFixed(2).replace('.',',')}`;
-                li.querySelector('.td-rateio').innerText = `R$ ${r.toFixed(2).replace('.',',')}`;
-                li.querySelector('.td-custo-final').innerText = `R$ ${(s+r).toFixed(2).replace('.',',')}`;
+            
+            // 1. Soma os martelos (Martelo x Qtd)
+            l.forEach(li => { 
+                const im = li.querySelector('.input-martelo'); 
+                const iq = li.querySelector('.input-qtd');
+                if(im && iq) {
+                    const m = parseFloat(im.value) || 0;
+                    const q = parseInt(iq.value) || 1;
+                    somaMartelos += (m * q); 
+                }
             });
+
+            // 2. Calcula os custos por linha
+            l.forEach(li => {
+                const im = li.querySelector('.input-martelo'); 
+                const it = li.querySelector('.input-taxa');
+                const iq = li.querySelector('.input-qtd');
+                
+                if(!im || !iq) return;
+                
+                const m = parseFloat(im.value) || 0; 
+                const t = parseFloat(it.value) || 0;
+                const q = parseInt(iq.value) || 1;
+                
+                // CÁLCULO CORRIGIDO: 
+                // O Subtotal é o valor do martelo (vezes a quantidade) + a taxa sobre esse valor total
+                const valorBase = m * q;
+                const subtotal = valorBase + (valorBase * (t / 100));
+                
+                totalCedulasBruto += subtotal;
+                
+                let rateio = 0; 
+                if(somaMartelos > 0) {
+                    // O rateio agora usa a quantidade para dividir corretamente
+                    rateio = ((m * q) / somaMartelos) * valorTotalFrete;
+                }
+                
+                const custoFinal = subtotal + rateio;
+
+                li.querySelector('.td-subtotal').innerText = `R$ ${subtotal.toFixed(2).replace('.',',')}`;
+                li.querySelector('.td-rateio').innerText = `R$ ${rateio.toFixed(2).replace('.',',')}`;
+                li.querySelector('.td-custo-final').innerText = `R$ ${custoFinal.toFixed(2).replace('.',',')}`;
+            });
+
+            // 3. Atualiza o Rodapé
+            document.getElementById('total-cedulas').innerText = `R$ ${totalCedulasBruto.toFixed(2).replace('.',',')}`;
+            document.getElementById('total-frete').innerText = `R$ ${valorTotalFrete.toFixed(2).replace('.',',')}`;
+            const totalGeral = totalCedulasBruto + valorTotalFrete;
+            document.getElementById('total-geral').innerText = `R$ ${totalGeral.toFixed(2).replace('.',',')}`;
         }
 
         async function salvarLote() {
@@ -336,14 +403,21 @@
 
             const linhas = document.querySelectorAll('#corpo-tabela tr'); const ceds = [];
             linhas.forEach(l => {
-                const im = l.querySelector('.input-martelo'); if(!im) return;
+                const im = l.querySelector('.input-martelo'); 
+                const iq = l.querySelector('.input-qtd');
+                if(!im || !iq) return;
+                
                 ceds.push({
                     pais: l.querySelector('.input-pais').value, 
-                    descricao: `${l.querySelector('.input-valor-facial').value} ${l.querySelector('.input-ano').value}`.trim(),
+                    descricao: l.querySelector('.input-valor-facial').value,
                     estado: l.querySelector('.input-estado').value, 
                     data: l.querySelector('.input-data').value, 
                     ref_lote: l.querySelector('.input-ref').value,
-                    codigo: "", martelo: parseFloat(im.value)||0, taxa_linha: parseFloat(l.querySelector('.input-taxa').value)||0
+                    codigo: l.querySelector('.input-pick').value, 
+                    ano: l.querySelector('.input-ano').value,
+                    quantidade: parseInt(iq.value) || 1, // Envia a quantidade
+                    martelo: parseFloat(im.value)||0, 
+                    taxa_linha: parseFloat(l.querySelector('.input-taxa').value)||0
                 });
             });
             if (ceds.length === 0) return alert("Adicione cédulas.");
@@ -360,7 +434,7 @@
                     })
                 });
                 const data = await res.json();
-                if (res.ok) { alert("✅ " + data.mensagem); document.getElementById('corpo-tabela').innerHTML = ''; }
+                if (res.ok) { alert("✅ " + data.mensagem); document.getElementById('corpo-tabela').innerHTML = ''; recalcularTabela(); }
                 else alert("❌ Erro: " + data.erro);
             } catch (e) { alert("Erro de comunicação."); }
         }
