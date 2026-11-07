@@ -10,6 +10,7 @@ class ProcessadorPDF:
         self.texto_completo = ""
 
     def extrair_texto(self):
+        # Abre o PDF e extrai o texto bruto
         with pdfplumber.open(self.arquivo) as pdf:
             for pagina in pdf.pages:
                 texto = pagina.extract_text()
@@ -18,25 +19,100 @@ class ProcessadorPDF:
         return self.texto_completo
 
     def extrair_cedulas(self):
-        # Regex para capturar: Codigo - Pais - Descricao (Qtd) RS Valor
-        padrao = r'(\d{4})\s*-\s*([A-Za-zÀ-ÿ\s]+)\s*-\s*([\d\sA-Za-zÀ-ÿ()\.\/-]+)\s*(\d)\s*R[S\$]\s*([\d,]+)'
-        resultados = re.findall(padrao, self.texto_completo)
-        
+        linhas = self.texto_completo.split('\n')
         cedulas_extraidas = []
-        for res in resultados:
-            codigo = res[0]
-            pais = res[1].strip()
-            descricao = res[2].strip()
-            valor_str = res[4].replace(',', '.')
-            valor = float(valor_str)
+        estados_validos = ["FE", "S/FE", "S", "MBC/S", "MBC", "BC/MBC", "BC", "R", "UTG"]
+
+        i = 0
+        while i < len(linhas):
+            linha = linhas[i].strip()
             
-            cedulas_extraidas.append({
-                'codigo': codigo,
-                'pais': pais,
-                'descricao': descricao,
-                'valor': valor
-            })
+            # Encontra o Lote
+            match = re.match(r'^(\d{4,5})\s*-\s*(.*)', linha)
             
+            if match:
+                lote = match.group(1)
+                texto_bloco = match.group(2).strip()
+                
+                if (i + 1) < len(linhas):
+                    texto_bloco += " " + linhas[i+1].strip()
+
+                # 1. Extrai o Valor Total
+                match_valor = re.search(r'R\$\s*([\d,]+)', texto_bloco)
+                valor = float(match_valor.group(1).replace(',', '.')) if match_valor else 0.0
+                if match_valor: 
+                    texto_bloco = texto_bloco.replace(match_valor.group(0), '')
+
+                # 2. Extrai o País
+                match_pais = re.match(r'^([A-Za-zÀ-ÿ\s]+?)(?:\s*-|\s*\d)', texto_bloco)
+                if match_pais:
+                    pais = match_pais.group(1).strip()
+                    texto_bloco = texto_bloco.replace(pais, '', 1).strip()
+                else:
+                    pais = "Desconhecido"
+
+                # 3. Extrai o Estado
+                estado_encontrado = "FE"
+                for est in estados_validos:
+                    if re.search(rf'\b{est}\b', texto_bloco):
+                        estado_encontrado = est
+                        texto_bloco = re.sub(rf'\b{est}\b', '', texto_bloco)
+                        break
+
+                # 4. Extrai o Pick
+                pick = ""
+                match_pick = re.search(r'\b[Pp]-?\s*(\d+)\b', texto_bloco)
+                if match_pick:
+                    pick = f"P-{match_pick.group(1)}"
+                    texto_bloco = texto_bloco.replace(match_pick.group(0), '')
+
+                # 5. Extrai o Ano (com intervalos)
+                ano = ""
+                match_ano = re.search(r'\b((?:19|20)\d{2}(?:\s*-\s*(?:19|20)\d{2})?)\b', texto_bloco)
+                if match_ano:
+                    ano = match_ano.group(1).replace(' ', '')
+                    texto_bloco = texto_bloco.replace(match_ano.group(0), '')
+
+                # 6. LIMPEZA BRUTA E DEFINITIVA
+                # O que sobrou de texto, nós vamos quebrar em palavras.
+                # Vamos remover lixos e pegar APENAS a primeira e a segunda palavra (Valor e Moeda).
+                
+                # Tira lixos antes de separar as palavras
+                texto_bloco = texto_bloco.replace('polímero', '').replace('polimero', '').replace('soberba', '')
+                texto_bloco = texto_bloco.replace('R$', '').replace('$', '').replace('(', '').replace(')', '')
+                
+                # Separa as palavras
+                palavras = texto_bloco.split()
+                palavras_limpas = []
+                
+                for p in palavras:
+                    # Remove o "1" solto e o "2" solto (quantidade)
+                    if p in ['1', '2']: continue
+                    # Remove números com vírgulas (ex: 0,00)
+                    if ',' in p: continue
+                    # Remove hifens soltos
+                    if p == '-': continue
+                    
+                    palavras_limpas.append(p)
+                
+                # Pega apenas as 2 primeiras palavras (Ex: "10" e "Mil Pesos" -> "10 Mil Pesos")
+                # Se tiver 3 palavras como "10" "Kip" "1975", o ano já foi removido antes
+                descricao_final = ' '.join(palavras_limpas[:2]).strip().title()
+
+                cedulas_extraidas.append({
+                    'codigo': lote,
+                    'pais': pais,
+                    'descricao': descricao_final,
+                    'ano': ano,
+                    'estado': estado_encontrado,
+                    'pick': pick,
+                    'valor': valor
+                })
+                
+                i += 2
+            else:
+                i += 1
+
         return cedulas_extraidas
 
 # --- FÁBRICA DA APLICAÇÃO FLASK ---
@@ -50,7 +126,6 @@ def create_app():
     def index():
         return render_template('index.html')
 
-    # ROTA: Recebe o PDF e processa
     @app.route('/processar_pdf', methods=['POST'])
     def processar_pdf():
         if 'arquivo_pdf' not in request.files:
@@ -60,13 +135,14 @@ def create_app():
         if arquivo.filename == '':
             return jsonify({'erro': 'Nenhum arquivo selecionado'}), 400
 
-        processador = ProcessadorPDF(arquivo)
-        processador.extrair_texto()
-        cedulas = processador.extrair_cedulas()
+        try:
+            processador = ProcessadorPDF(arquivo)
+            processador.extrair_texto()
+            cedulas = processador.extrair_cedulas()
+            return jsonify({'cedulas': cedulas})
+        except Exception as e:
+            return jsonify({'erro': f'Erro ao ler o PDF: {str(e)}'}), 500
 
-        return jsonify({'cedulas': cedulas})
-
-    # NOVA ROTA: Recebe os dados da tela e salva no banco SQLite
     @app.route('/salvar_lote', methods=['POST'])
     def salvar_lote():
         dados = request.get_json()
@@ -81,7 +157,7 @@ def create_app():
             if not vendedor:
                 vendedor = Vendedor(nome=nome_vendedor)
                 db.session.add(vendedor)
-                db.session.flush() # Salva o vendedor para gerar o ID
+                db.session.flush()
 
             # 2. Cria o Lote
             novo_lote = Lote(
@@ -91,23 +167,22 @@ def create_app():
                 custos_extras=float(dados.get('custos_extras', 0.0))
             )
             db.session.add(novo_lote)
-            db.session.flush() # Salva o lote para gerar o ID
+            db.session.flush()
 
-            # 3. Salva as Cédulas (Lendo a taxa individual que vem da tela)
+            # 3. Salva as Cédulas
             for cedula_data in dados.get('cedulas', []):
                 nova_cedula = Cedula(
                     lote_id=novo_lote.id,
                     pais=cedula_data.get('pais', ''),
                     valor_facial=cedula_data.get('descricao', ''),
-                    ano="", 
+                    ano=cedula_data.get('ano', ''), # <-- Salvando o ano
                     catalogo=cedula_data.get('codigo', ''),
-                    estado="FE",
+                    estado=cedula_data.get('estado', 'FE'), # <-- Salvando o estado correto
                     martelo=float(cedula_data.get('martelo', 0.0)),
-                    taxa_leilao=float(cedula_data.get('taxa_linha', 0.0)) # <-- Pega a taxa da linha da tabela
+                    taxa_leilao=float(cedula_data.get('taxa_linha', 0.0))
                 )
                 db.session.add(nova_cedula)
 
-            # Confirma tudo no banco de dados
             db.session.commit()
             return jsonify({'mensagem': 'Lote salvo com sucesso!'}), 200
 

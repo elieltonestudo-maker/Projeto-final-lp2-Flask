@@ -4,55 +4,84 @@
     <meta charset="UTF-8">
     <title>Sistema de Cédulas - Flask</title>
     <style>
-        :root {
-            --bg-color: #121212;
-            --panel-bg: #1e1e1e;
-            --text-color: #e0e0e0;
-            --gold-accent: #f1c40f;
-            --border-color: #333333;
-            --input-bg: #2d2d2d;
-        }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; }
+        :root { --bg-color: #121212; --panel-bg: #1e1e1e; --text-color: #e0e0e0; --gold-accent: #f1c40f; --border-color: #333; --input-bg: #2d2d2d; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; }
         .header { text-align: center; padding: 20px; color: var(--gold-accent); font-size: 24px; font-weight: bold; }
-        .tabs-container { display: flex; background-color: var(--panel-bg); border-bottom: 1px solid var(--border-color); padding: 0 20px; }
-        .tab { padding: 15px 30px; cursor: pointer; font-size: 14px; font-weight: bold; color: #888; border-bottom: 3px solid transparent; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; }
-        .tab:hover { color: var(--text-color); }
-        .tab.active { color: var(--gold-accent); border-bottom: 3px solid var(--gold-accent); background-color: rgba(241, 196, 15, 0.05); }
-        .tab-content { display: none; padding: 20px; max-width: 1400px; margin: 0 auto; } /* Aumentei a largura máxima */
-        .tab-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .panel { background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
-        .panel-title { color: var(--gold-accent); margin-top: 0; margin-bottom: 15px; font-size: 16px; display: flex; align-items: center; gap: 10px; }
-        .input-group { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-        input[type="text"], input[type="number"], select { background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 10px; border-radius: 5px; outline: none; }
-        input:focus, select:focus { border-color: var(--gold-accent); }
-        .btn { background-color: var(--gold-accent); color: #000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn:hover { opacity: 0.8; }
-        .btn-outline { background-color: transparent; border: 1px solid var(--gold-accent); color: var(--gold-accent); }
+        .tabs-container { display: flex; background: var(--panel-bg); border-bottom: 1px solid var(--border-color); padding: 0 20px; }
+        .tab { padding: 15px 30px; cursor: pointer; font-size: 14px; font-weight: bold; color: #888; border-bottom: 3px solid transparent; }
+        .tab.active { color: var(--gold-accent); border-bottom: 3px solid var(--gold-accent); }
+        .tab-content { display: none; padding: 20px; max-width: 1400px; margin: 0 auto; }
+        .tab-content.active { display: block; }
         
-        /* TABELA MAIS ESPAÇADA */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        /* Ajuste do Painel para segurar o botão + */
+        .panel { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-bottom: 20px; position: relative; padding-bottom: 80px; }
+        .panel-title { color: var(--gold-accent); margin-top: 0; font-size: 16px; }
+        
+        .input-group { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        input[type="text"], input[type="number"], select { background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 10px; border-radius: 5px; outline: none; }
+        select { cursor: pointer; }
+        .btn { background: var(--gold-accent); color: #000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-outline { background: transparent; border: 1px solid var(--gold-accent); color: var(--gold-accent); }
+        .btn-danger { background: transparent; border: 1px solid #ff4d4d; color: #ff4d4d; }
+        .btn-danger:hover { background: #ff4d4d; color: #fff; }
+        
+        /* Botão + posicionado no canto inferior esquerdo do painel */
+        .btn-add-linha { 
+            position: absolute; 
+            bottom: 20px; 
+            left: 20px; 
+            background: var(--panel-bg); 
+            color: var(--gold-accent); 
+            border: 2px solid var(--gold-accent); 
+            border-radius: 50%; 
+            width: 40px; 
+            height: 40px; 
+            font-size: 24px; 
+            cursor: pointer; 
+            z-index: 10; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            transition: all 0.3s; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+        
+        .btn-add-linha:hover { 
+            background: var(--gold-accent); 
+            color: #000; 
+            transform: scale(1.1); 
+        }
+        
+        .btn-del-linha { background: none; border: none; color: #ff4d4d; font-size: 16px; cursor: pointer; }
+        
+        /* Tabela com rolagem */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; display: block; max-height: 400px; overflow-y: auto; }
         th, td { border-bottom: 1px solid var(--border-color); padding: 15px 10px; text-align: left; font-size: 13px; white-space: nowrap; }
         th { color: var(--gold-accent); text-transform: uppercase; }
+        thead th { position: sticky; top: 0; background: var(--panel-bg); z-index: 10; border-bottom: 2px solid var(--gold-accent); }
         
-        /* Estilo para o campo de moeda */
         .money-input-container { display: flex; align-items: center; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 5px; padding-left: 8px; }
-        .money-input-container:focus-within { border-color: var(--gold-accent); }
         .money-symbol { color: #888; font-weight: bold; font-size: 12px; }
         .money-input-container input { border: none !important; background: transparent !important; padding-left: 5px; width: 70px; }
-
-        .search-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .filter-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 15px; }
-        .filter-item { display: flex; flex-direction: column; gap: 5px; }
-        .filter-item label { font-size: 12px; color: #aaa; }
-        .chart-area { background-color: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; }
-        .fake-bar { height: 30px; background-color: var(--gold-accent); margin-bottom: 15px; border-radius: 3px; display: flex; align-items: center; padding-left: 10px; color: #000; font-weight: bold; font-size: 12px; }
         
-        /* ESTILO PARA DATA INVÁLIDA */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-box { background: var(--panel-bg); padding: 30px; border-radius: 8px; border: 1px solid var(--gold-accent); text-align: center; max-width: 400px; width: 90%; }
+        .modal-actions { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
         .data-invalida { border: 1px solid #ff4d4d !important; color: #ff4d4d !important; }
+        td input[type="text"], td input[type="number"], td select { padding: 8px; font-size: 13px; }
     </style>
 </head>
 <body>
+
+    <div class="modal-overlay" id="modal-confirmacao">
+        <div class="modal-box">
+            <p id="modal-mensagem">Tem certeza?</p>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+                <button class="btn btn-danger" id="btn-confirmar-exclusao">Sim, Excluir</button>
+            </div>
+        </div>
+    </div>
 
     <div class="header">Aquisições</div>
 
@@ -62,38 +91,41 @@
     </div>
 
     <div id="tab-registrar" class="tab-content active">
-        
         <div class="panel">
             <h3 class="panel-title">ℹ️ INFORMAÇÕES DO LOTE</h3>
             <div class="input-group">
                 <label>Tipo:</label>
-                <select id="tipo-lote" onchange="atualizarTaxaGlobal()">
-                    <option>Leilão Oficial</option>
-                    <option>Venda Direta</option>
-                </select>
-                
+                <select id="tipo-lote" onchange="atualizarTaxaGlobal()"><option>Leilão Oficial</option><option>Venda Direta</option></select>
                 <label>Vendedor:</label>
                 <input type="text" id="vendedor-lote" placeholder="Buscar vendedor..." style="width: 200px;">
-                
                 <label>Frete:</label>
-                <input type="number" id="frete-lote" placeholder="0.00" style="width: 100px;" oninput="recalcularTabela()">
-                
-                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                    <input type="checkbox" id="check-extras"> Custos Extras?
-                </label>
-                <input type="number" id="input-extras" placeholder="0.00" style="width: 100px; display: none;" oninput="recalcularTabela()">
+                <div class="money-input-container"><span class="money-symbol">R$</span><input type="number" id="frete-lote" placeholder="0.00" oninput="recalcularTabela()"></div>
+                <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="check-extras"> Custos Extras?</label>
+                <div class="money-input-container" id="container-extras" style="display: none;"><span class="money-symbol">R$</span><input type="number" id="input-extras" placeholder="0.00" oninput="recalcularTabela()"></div>
             </div>
         </div>
 
-        <div class="panel">
+        <div class="panel" style="padding-bottom: 80px;">
             <h3 class="panel-title">📋 CÉDULAS DO LOTE</h3>
-            
             <div class="input-group" style="justify-content: space-between; margin-bottom: 15px; padding: 10px; background: #2a2a2a; border-radius: 5px;">
-                <div style="display: flex; gap: 10px; align-items: center;">
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                     <label style="color: var(--gold-accent); font-weight: bold;">Ações em Massa:</label>
                     <input type="text" id="massa-data" placeholder="DD/MM/AAAA" style="width: 120px;" oninput="aplicarMascaraData(this)">
                     <input type="text" id="massa-ref" placeholder="Nº Leilão/Lote" style="width: 120px;">
-                    <button class="btn btn-outline" onclick="aplicarEmMassa()">Aplicar aos Selecionados</button>
+                    <select id="massa-estado" style="width: 100px;">
+                        <option value="">Estado</option>
+                        <option>FE</option>
+                        <option>S/FE</option>
+                        <option>S</option>
+                        <option>MBC/S</option>
+                        <option>MBC</option>
+                        <option>BC/MBC</option>
+                        <option>BC</option>
+                        <option>R</option>
+                        <option>UTG</option>
+                    </select>
+                    <button class="btn btn-outline" onclick="aplicarEmMassa()">Aplicar</button>
+                    <button class="btn btn-danger" onclick="abrirModalExclusaoMassa()">🗑️ Excluir</button>
                 </div>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn">📥 Importar Texto</button>
@@ -107,432 +139,230 @@
             <table>
                 <thead>
                     <tr>
-                        <th><input type="checkbox" id="check-todos" onclick="selecionarTodos(this)"></th>
-                        <th>Nº</th>
-                        <th>Data</th>
-                        <th>Ref. / Lote</th>
-                        <th>País</th>
-                        <th>Valor</th>
-                        <th>Ano</th> <!-- NOVA COLUNA -->
-                        <th>Estado</th>
-                        <th>Martelo</th>
-                        <th>Taxa (%)</th>
-                        <th>Subtotal</th>
-                        <th>Rateio</th>
-                        <th>Custo Final</th>
+                        <th><input type="checkbox" id="check-todos" onclick="selecionarTodos(this)"></th><th>Nº</th><th>Data</th><th>Ref. / Lote</th><th>País</th><th>Valor</th><th>Pick</th><th>Ano</th><th>Estado</th><th>Martelo</th><th>Taxa (%)</th><th>Subtotal</th><th>Rateio</th><th>Custo Final</th><th>Ação</th>
                     </tr>
                 </thead>
-                <tbody id="corpo-tabela">
-                </tbody>
+                <tbody id="corpo-tabela"></tbody>
             </table>
+            
+            <!-- BOTÃO + AGORA DENTRO DO PAINEL -->
+            <button class="btn-add-linha" onclick="adicionarLinhaVazia()" title="Adicionar cédula">+</button>
         </div>
         
-        <button class="btn" style="width: 100%; padding: 15px; font-size: 16px;" onclick="salvarLote()">💾 SALVAR LOTE COMPLETO</button>
+        <!-- BOTÃO SALVAR AGORA COM MARGEM E TAMANHO CONTROLADO -->
+        <button class="btn" style="width: 100%; max-width: 600px; display: block; margin: 0 auto; padding: 15px; font-size: 16px;" onclick="salvarLote()">💾 SALVAR LOTE COMPLETO</button>
     </div>
 
     <div id="tab-pesquisar" class="tab-content">
-        <div class="panel">
-            <div class="input-group" style="margin-bottom: 20px;">
-                <label>Buscar:</label>
-                <input type="text" placeholder="Filtre instantaneamente por nome, país ou vendedor..." style="width: 100%;">
-            </div>
-            <h3 class="panel-title" style="font-size: 14px;">▼ Filtros Avançados</h3>
-            <div class="filter-grid">
-                <div class="filter-item"><label>Vendedor:</label><select><option>Todos</option></select></div>
-                <div class="filter-item"><label>País:</label><select><option>Todos</option></select></div>
-                <div class="filter-item"><label>Conservação:</label><select><option>Todas</option></select></div>
-                <div class="filter-item"><label>Data Início:</label><input type="text"></div>
-                <div class="filter-item"><label>Valor Mín:</label><input type="number"></div>
-                <div class="filter-item"><label>Ordenar por:</label><select><option>Nome</option></select></div>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                <button class="btn btn-outline">Limpar</button>
-                <button class="btn">🔍 Aplicar Filtros</button>
-                <button class="btn btn-outline">📄 Relatório</button>
-            </div>
-        </div>
+        <div class="panel"><h3 class="panel-title">Pesquisa (Em breve)</h3></div>
     </div>
 
     <script>
+        let tipoExclusao = "";
+
+        function fecharModal() { document.getElementById('modal-confirmacao').style.display = 'none'; tipoExclusao = ""; }
+
         function aplicarMascaraData(input) {
-            let valor = input.value.replace(/\D/g, ''); 
-            if (valor.length > 8) valor = valor.slice(0, 8); 
-
-            if (valor.length === 0) {
-                input.value = "";
-                input.classList.remove('data-invalida');
-                return;
-            }
-
-            if (valor.length >= 5) {
-                valor = valor.replace(/^(\d{2})(\d{2})(\d{1,4}).*/, '$1/$2/$3');
-            } else if (valor.length >= 3) {
-                valor = valor.replace(/^(\d{2})(\d{1,2}).*/, '$1/$2');
-            }
-
+            let valor = input.value.replace(/\D/g, ''); if (valor.length > 8) valor = valor.slice(0, 8);
+            if (valor.length === 0) { input.value = ""; input.classList.remove('data-invalida'); return; }
+            if (valor.length >= 5) valor = valor.replace(/^(\d{2})(\d{2})(\d{1,4}).*/, '$1/$2/$3');
+            else if (valor.length >= 3) valor = valor.replace(/^(\d{2})(\d{1,2}).*/, '$1/$2');
             input.value = valor;
-
-            // Validação e Padronização no Blur (quando sai do campo)
             input.onblur = function() {
-                let valorAtual = input.value.replace(/\D/g, '');
-                if (valorAtual.length === 8) {
-                    let dia = valorAtual.substring(0, 2);
-                    let mes = valorAtual.substring(2, 4);
-                    let ano = valorAtual.substring(4, 8);
-                    
-                    if (ano.length === 2) ano = "20" + ano; // Transforma 24 em 2024
-                    
-                    let dataFormatada = `${dia}/${mes}/${ano}`;
-                    input.value = dataFormatada;
-
-                    const partes = dataFormatada.split('/');
-                    let d = parseInt(partes[0]);
-                    let m = parseInt(partes[1]) - 1; 
-                    let a = parseInt(partes[2]);
-
-                    const dataDigitada = new Date(a, m, d);
-                    const hoje = new Date();
-                    hoje.setHours(0, 0, 0, 0); 
-
-                    if (dataDigitada > hoje || isNaN(dataDigitada.getTime())) {
-                        input.classList.add('data-invalida');
-                        input.title = "Data no futuro ou inválida!";
-                    } else {
-                        input.classList.remove('data-invalida');
-                        input.title = "";
-                    }
-                } else if (valorAtual.length > 0) {
-                    input.classList.add('data-invalida');
-                }
+                let v = input.value.replace(/\D/g, '');
+                if (v.length === 8) {
+                    let d = v.substring(0,2), m = v.substring(2,4), a = v.substring(4,8);
+                    if (a.length === 2) a = "20" + a;
+                    input.value = `${d}/${m}/${a}`;
+                    const partes = input.value.split('/');
+                    const dataDigitada = new Date(partes[2], partes[1]-1, partes[0]);
+                    const hoje = new Date(); hoje.setHours(0,0,0,0);
+                    if (dataDigitada > hoje || isNaN(dataDigitada.getTime())) { input.classList.add('data-invalida'); } 
+                    else { input.classList.remove('data-invalida'); }
+                } else if (v.length > 0) input.classList.add('data-invalida');
             };
         }
 
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
-            if (tabName === 'registrar') {
-                document.querySelectorAll('.tab')[0].classList.add('active');
-                document.getElementById('tab-registrar').classList.add('active');
-            } else {
-                document.querySelectorAll('.tab')[1].classList.add('active');
-                document.getElementById('tab-pesquisar').classList.add('active');
-            }
+        function switchTab(t) {
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            if(t==='registrar'){ document.querySelectorAll('.tab')[0].classList.add('active'); document.getElementById('tab-registrar').classList.add('active'); }
+            else { document.querySelectorAll('.tab')[1].classList.add('active'); document.getElementById('tab-pesquisar').classList.add('active'); }
         }
 
         document.getElementById('check-extras').addEventListener('change', function() {
-            const inputExtras = document.getElementById('input-extras');
-            inputExtras.style.display = this.checked ? 'block' : 'none';
-            if(!this.checked) { inputExtras.value = ''; recalcularTabela(); }
+            document.getElementById('container-extras').style.display = this.checked ? 'flex' : 'none';
+            if(!this.checked) document.getElementById('input-extras').value = '';
+            recalcularTabela();
         });
 
         async function processarArquivo(form) {
-            const botao = form.querySelector('button');
-            const textoOriginal = botao.innerHTML;
-            botao.innerHTML = '⏳ Processando...';
-
-            const formData = new FormData(form);
-
+            const btn = form.querySelector('button'); const txt = btn.innerHTML; btn.innerHTML = '⏳...';
             try {
-                const response = await fetch('/processar_pdf', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (data.cedulas && data.cedulas.length > 0) {
-                    renderizarTabela(data.cedulas);
-                } else {
-                    alert('Nenhuma cédula encontrada no PDF.');
-                }
-            } catch (error) {
-                console.error('Erro:', error);
-                alert('Erro ao ler o PDF.');
-            } finally {
-                botao.innerHTML = textoOriginal;
-                form.reset();
-            }
+                const res = await fetch('/processar_pdf', { method: 'POST', body: new FormData(form) });
+                const data = await res.json();
+                if (data.cedulas?.length > 0) renderizarTabela(data.cedulas); else alert('Nenhuma cédula.');
+            } catch (e) { alert('Erro no PDF.'); } finally { btn.innerHTML = txt; form.reset(); }
         }
 
         function atualizarTaxaGlobal() {
-            const tipo = document.getElementById('tipo-lote').value;
-            const taxa = (tipo === 'Leilão Oficial') ? 5 : 0; 
-            
-            const inputsTaxa = document.querySelectorAll('.input-taxa');
-            inputsTaxa.forEach(input => {
-                input.value = taxa;
-                input.style.color = "var(--text-color)"; 
-            });
-            
-            const checkboxesIsento = document.querySelectorAll('.check-isento');
-            checkboxesIsento.forEach(cb => cb.checked = false);
-            
+            const taxa = document.getElementById('tipo-lote').value === 'Leilão Oficial' ? 5 : 0;
+            document.querySelectorAll('.input-taxa').forEach(i => { i.value = taxa; i.style.color = "var(--text-color)"; });
+            document.querySelectorAll('.check-isento').forEach(cb => cb.checked = false);
             recalcularTabela();
         }
 
+        function criarLinhaHTML(p="", v="", a="", m=0, est="FE", pk="") { // <-- Adicionado o pk
+            const estados = ["FE", "S/FE", "S", "MBC/S", "MBC", "BC/MBC", "BC", "R", "UTG"];
+            let optionsEstado = estados.map(e => `<option value="${e}" ${e === est ? 'selected' : ''}>${e}</option>`).join('');
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="checkbox" class="check-selecao"></td><td class="td-numero"></td>
+                <td><input type="text" class="input-data" placeholder="DD/MM/AAAA" style="width:110px" oninput="aplicarMascaraData(this)"></td>
+                <td><input type="text" class="input-ref" placeholder="Lote" style="width:80px"></td>
+                <td><input type="text" class="input-pais" value="${p}" style="width:100px"></td>
+                <td><input type="text" class="input-valor-facial" value="${v}" style="width:80px"></td>
+                <td><input type="text" class="input-pick" value="${pk}" placeholder="Pick" style="width:70px"></td> <!-- NOVO INPUT -->
+                <td><input type="text" class="input-ano" value="${a}" style="width:60px"></td>
+                <td><select class="input-estado" style="width:80px">${optionsEstado}</select></td>
+                <td><div class="money-input-container"><span class="money-symbol">R$</span><input type="number" class="input-martelo" value="${m>0?m.toFixed(2):''}" oninput="recalcularTabela()"></div></td>
+                <td style="display:flex;gap:5px"><input type="checkbox" class="check-isento" onchange="alternarIsencao(this)"><input type="number" class="input-taxa" value="${document.getElementById('tipo-lote').value==='Leilão Oficial'?5:0}" style="width:50px" oninput="recalcularTabela()"></td>
+                <td class="td-subtotal">R$ 0,00</td><td class="td-rateio">R$ 0,00</td><td class="td-custo-final">R$ 0,00</td>
+                <td><button class="btn-del-linha" onclick="abrirModalExclusaoLinha(this)">✖</button></td>`;
+            return tr;
+        }
+
+        // AQUI O JAVASCRIPT USA OS DADOS SEPARADOS QUE O PYTHON ENVIA
         function renderizarTabela(cedulas) {
-            const tbody = document.getElementById('corpo-tabela');
-            tbody.innerHTML = '';
-            
-            const tipo = document.getElementById('tipo-lote').value;
-            const taxaPadrao = (tipo === 'Leilão Oficial') ? 5 : 0;
-
-            cedulas.forEach((cedula, index) => {
-                const paisCorrigido = cedula.pais.replace('\\u00e3', 'ã').replace('\\u00e9', 'é').replace('\\u00ed', 'í');
-                let descricaoCorrigida = cedula.descricao.replace('\\u00e3', 'ã');
+            const tbody = document.getElementById('corpo-tabela'); tbody.innerHTML = '';
+            cedulas.forEach(c => {
+                // Passa o c.pick no final
+                const tr = criarLinhaHTML(c.pais, c.descricao, c.ano, c.valor, c.estado, c.pick); 
                 
-                // SEPARA O ANO DO VALOR
-                let valorFacial = descricaoCorrigida;
-                let ano = "";
+                tr.querySelector('.input-ref').value = c.codigo; 
                 
-                // Expressão regular para encontrar um ano (4 dígitos, ex: 1990) no final ou no meio da descrição
-                const matchAno = descricaoCorrigida.match(/\b(19|20)\d{2}\b/);
-                if (matchAno) {
-                    ano = matchAno[0];
-                    // Remove o ano da descrição do valor
-                    valorFacial = descricaoCorrigida.replace(ano, '').trim();
-                }
+                // Preenche o input do Pick (se vier do Python)
+                tr.querySelector('.input-pick').value = c.pick || '';
 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><input type="checkbox" class="check-selecao"></td>
-                    <td>${index + 1}</td>
-                    <td><input type="text" class="input-data" placeholder="DD/MM/AAAA" style="width: 110px;" oninput="aplicarMascaraData(this)"></td>
-                    <td><input type="text" class="input-ref" placeholder="Lote/Ref" style="width: 80px;"></td>
-                    <td>${paisCorrigido}</td>
-                    <td>${valorFacial}</td> <!-- VALOR SEM O ANO -->
-                    <td>${ano}</td> <!-- ANO SEPARADO -->
-                    <td>FE</td>
-                    <td>
-                        <div class="money-input-container">
-                            <span class="money-symbol">R$</span>
-                            <input type="number" class="input-martelo" value="${cedula.valor.toFixed(2)}" oninput="recalcularTabela()">
-                        </div>
-                    </td>
-                    <td style="display: flex; align-items: center; gap: 5px;">
-                        <input type="checkbox" class="check-isento" onchange="alternarIsencao(this)" title="Isentar taxa (Compra por fora)">
-                        <input type="number" class="input-taxa" value="${taxaPadrao}" style="width: 50px;" oninput="recalcularTabela()">
-                    </td>
-                    <td class="td-subtotal">R$ 0,00</td>
-                    <td class="td-rateio">R$ 0,00</td>
-                    <td class="td-custo-final">R$ 0,00</td>
-                `;
                 tbody.appendChild(tr);
             });
-            recalcularTabela(); 
+            atualizarNumeracao(); recalcularTabela();
         }
 
-        function selecionarTodos(checkTodos) {
-            const checkboxes = document.querySelectorAll('.check-selecao');
-            checkboxes.forEach(cb => cb.checked = checkTodos.checked);
+        function adicionarLinhaVazia() {
+            const tbody = document.getElementById('corpo-tabela');
+            tbody.appendChild(criarLinhaHTML()); atualizarNumeracao(); recalcularTabela();
+            tbody.closest('table').scrollTop = tbody.closest('table').scrollHeight;
         }
+
+        function abrirModalExclusaoLinha(btn) {
+            const linha = btn.closest('tr');
+            document.getElementById('modal-mensagem').innerText = "Excluir esta cédula?";
+            document.getElementById('modal-confirmacao').style.display = 'flex';
+            document.getElementById('btn-confirmar-exclusao').onclick = () => { linha.remove(); atualizarNumeracao(); recalcularTabela(); fecharModal(); };
+        }
+
+        function abrirModalExclusaoMassa() {
+            const sel = document.querySelectorAll('.check-selecao:checked');
+            if (sel.length === 0) return alert("Selecione alguma cédula.");
+            document.getElementById('modal-mensagem').innerText = `Excluir ${sel.length} cédula(s)?`;
+            document.getElementById('modal-confirmacao').style.display = 'flex';
+            document.getElementById('btn-confirmar-exclusao').onclick = () => {
+                sel.forEach(cb => cb.closest('tr').remove()); atualizarNumeracao(); recalcularTabela(); fecharModal();
+            };
+        }
+
+        function atualizarNumeracao() { document.querySelectorAll('#corpo-tabela tr').forEach((l,i) => { const td = l.querySelector('.td-numero'); if(td) td.innerText = i+1; }); }
+        function selecionarTodos(c) { document.querySelectorAll('.check-selecao').forEach(cb => cb.checked = c.checked); }
 
         function aplicarEmMassa() {
-            let novaDataInput = document.getElementById('massa-data');
-            let novaData = novaDataInput.value;
-            const novaRef = document.getElementById('massa-ref').value;
-
-            // 1. Força a formatação da data em massa antes de aplicar
-            if (novaData.length > 0) {
-                let apenasNumeros = novaData.replace(/\D/g, '');
-                if (apenasNumeros.length === 8) {
-                    let d = apenasNumeros.substring(0, 2);
-                    let m = apenasNumeros.substring(2, 4);
-                    let a = apenasNumeros.substring(4, 8);
-                    if (a.length === 2) a = "20" + a;
-                    novaData = `${d}/${m}/${a}`;
-                    novaDataInput.value = novaData;
-                } else if (apenasNumeros.length === 6) { // Ex: 151024
-                    let d = apenasNumeros.substring(0, 2);
-                    let m = apenasNumeros.substring(2, 4);
-                    let a = "20" + apenasNumeros.substring(4, 6);
-                    novaData = `${d}/${m}/${a}`;
-                    novaDataInput.value = novaData;
-                } else {
-                    alert("⚠️ Data em massa incompleta. Use o formato DD/MM/AAAA.");
-                    return;
-                }
-            }
-
-            // 2. Valida se a data é no futuro
-            if (novaData.length === 10) {
-                const partes = novaData.split('/');
-                const dataDigitada = new Date(partes[2], partes[1] - 1, partes[0]);
-                const hoje = new Date();
-                hoje.setHours(0, 0, 0, 0);
-                
-                if (dataDigitada > hoje || isNaN(dataDigitada.getTime())) {
-                    novaDataInput.classList.add('data-invalida');
-                    alert("❌ A data em massa (" + novaData + ") é no futuro ou inválida. Corrija antes de aplicar.");
-                    return; // Bloqueia o resto da função
-                } else {
-                    novaDataInput.classList.remove('data-invalida');
-                }
-            }
-
-            // 3. Aplica nas linhas selecionadas
-            const linhasSelecionadas = document.querySelectorAll('.check-selecao:checked');
+            const dInput = document.getElementById('massa-data'); let d = dInput.value; 
+            const r = document.getElementById('massa-ref').value; 
+            const e = document.getElementById('massa-estado').value;
+            const sel = document.querySelectorAll('.check-selecao:checked');
             
-            if (linhasSelecionadas.length === 0) {
-                alert("Selecione pelo menos uma cédula na tabela para aplicar.");
-                return;
+            if (sel.length === 0) return alert("Selecione alguma cédula.");
+
+            if (d.length > 0) {
+                let nums = d.replace(/\D/g, '');
+                if (nums.length === 8) {
+                    let dia = nums.substring(0,2), mes = nums.substring(2,4), ano = nums.substring(4,8);
+                    if(ano.length===2) ano = "20"+ano;
+                    d = `${dia}/${mes}/${ano}`; dInput.value = d;
+                    const partes = d.split('/'); const dt = new Date(partes[2], partes[1]-1, partes[0]); const hj = new Date(); hj.setHours(0,0,0,0);
+                    if (dt > hj || isNaN(dt.getTime())) { dInput.classList.add('data-invalida'); return alert("Data futura ou inválida."); }
+                    else dInput.classList.remove('data-invalida');
+                } else return alert("Data incompleta.");
             }
 
-            linhasSelecionadas.forEach(checkbox => {
-                const linha = checkbox.closest('tr');
-                if (novaData) {
-                    const inputData = linha.querySelector('.input-data');
-                    inputData.value = novaData;
-                    // Chama a validação para garantir que a linha não fique vermelha se estiver tudo certo
-                    aplicarMascaraData(inputData);
-                }
-                if (novaRef) linha.querySelector('.input-ref').value = novaRef;
+            sel.forEach(cb => {
+                const l = cb.closest('tr');
+                if(d) { const i = l.querySelector('.input-data'); i.value = d; aplicarMascaraData(i); }
+                if(r) l.querySelector('.input-ref').value = r;
+                if(e) l.querySelector('.input-estado').value = e;
             });
-            
             recalcularTabela();
         }
 
-        function alternarIsencao(checkbox) {
-            const linha = checkbox.closest('tr');
-            const inputTaxa = linha.querySelector('.input-taxa');
-            
-            if (checkbox.checked) {
-                inputTaxa.value = 0;
-                inputTaxa.style.color = "#ff4d4d"; 
-            } else {
-                const tipo = document.getElementById('tipo-lote').value;
-                inputTaxa.value = (tipo === 'Leilão Oficial') ? 5 : 0;
-                inputTaxa.style.color = "var(--text-color)";
-            }
+        function alternarIsencao(cb) {
+            const input = cb.closest('tr').querySelector('.input-taxa');
+            input.value = cb.checked ? 0 : (document.getElementById('tipo-lote').value === 'Leilão Oficial' ? 5 : 0);
+            input.style.color = cb.checked ? "#ff4d4d" : "var(--text-color)";
             recalcularTabela();
         }
 
         function recalcularTabela() {
-            const frete = parseFloat(document.getElementById('frete-lote').value) || 0;
-            const checkExtras = document.getElementById('check-extras').checked;
-            const custosExtras = checkExtras ? (parseFloat(document.getElementById('input-extras').value) || 0) : 0;
-            
-            const valorTotalFrete = frete + custosExtras;
-
-            let somaMartelos = 0;
-            const linhas = document.querySelectorAll('#corpo-tabela tr');
-            
-            linhas.forEach(linha => {
-                const inputMartelo = linha.querySelector('.input-martelo');
-                if (inputMartelo) {
-                    somaMartelos += parseFloat(inputMartelo.value) || 0;
-                }
-            });
-
-            linhas.forEach(linha => {
-                const inputMartelo = linha.querySelector('.input-martelo');
-                const inputTaxa = linha.querySelector('.input-taxa');
-                
-                if (!inputMartelo) return;
-
-                const martelo = parseFloat(inputMartelo.value) || 0;
-                const taxa = parseFloat(inputTaxa.value) || 0;
-                
-                const subtotal = martelo + (martelo * (taxa / 100));
-                
-                let rateio = 0;
-                if (somaMartelos > 0) {
-                    rateio = (martelo / somaMartelos) * valorTotalFrete;
-                }
-
-                const custoFinal = subtotal + rateio;
-
-                // Ajuste para não quebrar linha e manter o R$ na mesma linha
-                linha.querySelector('.td-subtotal').innerText = `R$ ${subtotal.toFixed(2).replace('.', ',')}`;
-                linha.querySelector('.td-rateio').innerText = `R$ ${rateio.toFixed(2).replace('.', ',')}`;
-                linha.querySelector('.td-custo-final').innerText = `R$ ${custoFinal.toFixed(2).replace('.', ',')}`;
+            const f = parseFloat(document.getElementById('frete-lote').value) || 0;
+            const cE = document.getElementById('check-extras').checked ? (parseFloat(document.getElementById('input-extras').value) || 0) : 0;
+            const vT = f + cE; let sM = 0;
+            const l = document.querySelectorAll('#corpo-tabela tr');
+            l.forEach(li => { const im = li.querySelector('.input-martelo'); if(im) sM += parseFloat(im.value) || 0; });
+            l.forEach(li => {
+                const im = li.querySelector('.input-martelo'); const it = li.querySelector('.input-taxa');
+                if(!im) return;
+                const m = parseFloat(im.value) || 0; const t = parseFloat(it.value) || 0;
+                const s = m + (m * (t/100)); let r = 0; if(sM > 0) r = (m / sM) * vT;
+                li.querySelector('.td-subtotal').innerText = `R$ ${s.toFixed(2).replace('.',',')}`;
+                li.querySelector('.td-rateio').innerText = `R$ ${r.toFixed(2).replace('.',',')}`;
+                li.querySelector('.td-custo-final').innerText = `R$ ${(s+r).toFixed(2).replace('.',',')}`;
             });
         }
 
         async function salvarLote() {
-            // 1. VERIFICA SE EXISTE ALGUMA DATA INVÁLIDA OU EM BRANCO
-            const camposData = document.querySelectorAll('.input-data');
-            let temDataInvalida = false;
-            
-            camposData.forEach(input => {
-                if (input.classList.contains('data-invalida') || input.value.trim() === '') {
-                    temDataInvalida = true;
-                    input.classList.add('data-invalida'); // Deixa vermelho para o usuário ver
-                }
-            });
+            const dInvs = document.querySelectorAll('.data-invalida');
+            const vazias = Array.from(document.querySelectorAll('.input-data')).some(i => !i.value.trim());
+            if (dInvs.length > 0 || vazias) return alert("Existem datas inválidas ou em branco.");
 
-            if (temDataInvalida) {
-                alert("❌ Erro: Existem datas inválidas, no futuro ou em branco. Corrija os campos em vermelho antes de salvar.");
-                return; // Para a execução aqui e não envia para o Python
-            }
-
-            // 2. PEGA OS DADOS GERAIS DO LOTE
-            const vendedor = document.getElementById('vendedor-lote').value;
-            const tipo = document.getElementById('tipo-lote').value;
-            const frete = parseFloat(document.getElementById('frete-lote').value) || 0;
-            const checkExtras = document.getElementById('check-extras').checked;
-            const custosExtras = checkExtras ? parseFloat(document.getElementById('input-extras').value) || 0 : 0;
-
-            // 3. PEGA OS DADOS DAS CÉDULAS NA TABELA
-            const linhas = document.querySelectorAll('#corpo-tabela tr');
-            const cedulas = [];
-
-            linhas.forEach(linha => {
-                const colunas = linha.querySelectorAll('td');
-                const inputMartelo = linha.querySelector('.input-martelo');
-                const inputTaxa = linha.querySelector('.input-taxa');
-                const inputData = linha.querySelector('.input-data');
-                const inputRef = linha.querySelector('.input-ref');
-                
-                if (inputMartelo) {
-                    cedulas.push({
-                        pais: colunas[4].innerText,
-                        descricao: `${colunas[5].innerText} ${colunas[6].innerText}`.trim(), // Junta Valor e Ano
-                        data: inputData.value,
-                        ref_lote: inputRef.value,
-                        codigo: "", 
-                        martelo: parseFloat(inputMartelo.value) || 0,
-                        taxa_linha: parseFloat(inputTaxa.value) || 0 
-                    });
-                }
-            });
-
-            // 4. VERIFICA SE TEM CÉDULAS NA TABELA
-            if (cedulas.length === 0) {
-                alert("Adicione cédulas antes de salvar!");
-                return;
-            }
-
-            // 5. MONTA O PACOTE DE DADOS
-            const dadosParaSalvar = {
-                vendedor: vendedor || "Vendedor sem nome",
-                tipo: tipo,
-                frete: frete,
-                custos_extras: custosExtras,
-                cedulas: cedulas
-            };
-
-            // 6. ENVIA PARA O FLASK (PYTHON)
-            try {
-                const response = await fetch('/salvar_lote', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dadosParaSalvar)
+            const linhas = document.querySelectorAll('#corpo-tabela tr'); const ceds = [];
+            linhas.forEach(l => {
+                const im = l.querySelector('.input-martelo'); if(!im) return;
+                ceds.push({
+                    pais: l.querySelector('.input-pais').value, 
+                    descricao: `${l.querySelector('.input-valor-facial').value} ${l.querySelector('.input-ano').value}`.trim(),
+                    estado: l.querySelector('.input-estado').value, 
+                    data: l.querySelector('.input-data').value, 
+                    ref_lote: l.querySelector('.input-ref').value,
+                    codigo: "", martelo: parseFloat(im.value)||0, taxa_linha: parseFloat(l.querySelector('.input-taxa').value)||0
                 });
+            });
+            if (ceds.length === 0) return alert("Adicione cédulas.");
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    alert("✅ " + data.mensagem);
-                    document.getElementById('corpo-tabela').innerHTML = ''; // Limpa a tabela após salvar
-                } else {
-                    alert("❌ Erro no servidor: " + data.erro);
-                }
-            } catch (error) {
-                console.error('Erro ao salvar:', error);
-                alert("Erro de comunicação com o servidor.");
-            }
+            try {
+                const res = await fetch('/salvar_lote', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({
+                        vendedor: document.getElementById('vendedor-lote').value || "Sem nome", 
+                        tipo: document.getElementById('tipo-lote').value,
+                        frete: parseFloat(document.getElementById('frete-lote').value)||0,
+                        custos_extras: document.getElementById('check-extras').checked ? (parseFloat(document.getElementById('input-extras').value)||0) : 0,
+                        cedulas: ceds
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) { alert("✅ " + data.mensagem); document.getElementById('corpo-tabela').innerHTML = ''; }
+                else alert("❌ Erro: " + data.erro);
+            } catch (e) { alert("Erro de comunicação."); }
         }
     </script>
 </body>
