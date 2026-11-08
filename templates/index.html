@@ -99,7 +99,13 @@
         </div>
 
         <div class="panel" style="padding-bottom: 80px;">
-            <h3 class="panel-title">📋 CÉDULAS DO LOTE</h3>
+            <!-- TÍTULO E NOME DO ARQUIVO LADO A LADO -->
+            <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                <h3 class="panel-title" style="margin-bottom: 0;">📋 CÉDULAS DO LOTE</h3>
+                <span id="nome-arquivo-importado" style="font-size: 12px; color: #888; font-style: italic;">
+                    (Nenhum arquivo importado)
+                </span>
+            </div>
             
             <!-- BARRA DE AÇÕES EM MASSA (Agora com botão Desfazer) -->
             <div class="input-group" style="justify-content: space-between; margin-bottom: 15px; padding: 10px; background: #2a2a2a; border-radius: 5px;">
@@ -122,7 +128,6 @@
                     </form>
                 </div>
             </div>
-
             <table>
                 <thead>
                     <tr>
@@ -196,11 +201,31 @@
 
         async function processarArquivo(form) {
             const btn = form.querySelector('button'); const txt = btn.innerHTML; btn.innerHTML = '⏳...';
+            
+            // 1. Pega o nome do arquivo do input
+            const fileInput = form.querySelector('input[type="file"]');
+            const nomeArquivo = fileInput.files.length > 0 ? fileInput.files[0].name : "";
+
             try {
                 const res = await fetch('/processar_pdf', { method: 'POST', body: new FormData(form) });
                 const data = await res.json();
-                if (data.cedulas?.length > 0) renderizarTabela(data.cedulas); else alert('Nenhuma cédula.');
-            } catch (e) { alert('Erro no PDF.'); } finally { btn.innerHTML = txt; form.reset(); }
+                
+                if (data.cedulas?.length > 0) {
+                    renderizarTabela(data.cedulas); 
+                    
+                    // 2. Atualiza o nome do arquivo na tela
+                    const spanArquivo = document.getElementById('nome-arquivo-importado');
+                    spanArquivo.innerText = `📄 ${nomeArquivo}`;
+                    spanArquivo.style.color = "var(--gold-accent)";
+                    
+                } else {
+                    alert('Nenhuma cédula.');
+                }
+            } catch (e) { 
+                alert('Erro no PDF.'); 
+            } finally { 
+                btn.innerHTML = txt; form.reset(); 
+            }
         }
 
         function atualizarTaxaGlobal() {
@@ -211,10 +236,12 @@
         }
 
         // Função para criar a linha (agora com campo QTD)
-        function criarLinhaHTML(p="", v="", a="", m=0, est="FE", pk="", qtd="1") {
+        function criarLinhaHTML(p="", v="", a="", m=0, est="R", pk="", qtd="1") { // <-- Padrão 'R' aqui
             const estados = ["FE", "S/FE", "S", "MBC/S", "MBC", "BC/MBC", "BC", "R", "UTG"];
-            let optionsEstado = estados.map(e => `<option value="${e}" ${e === est ? 'selected' : ''}>${e}</option>`).join('');
-
+            // Se o estado vier vazio do Python, usa 'R' como padrão
+            let estadoFinal = est ? est : "R";
+            let optionsEstado = estados.map(e => `<option value="${e}" ${e === estadoFinal ? 'selected' : ''}>${e}</option>`).join('');
+            // ... resto do código
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><input type="checkbox" class="check-selecao"></td><td class="td-numero"></td>
@@ -415,7 +442,7 @@
                     ref_lote: l.querySelector('.input-ref').value,
                     codigo: l.querySelector('.input-pick').value, 
                     ano: l.querySelector('.input-ano').value,
-                    quantidade: parseInt(iq.value) || 1, // Envia a quantidade
+                    quantidade: parseInt(iq.value) || 1,
                     martelo: parseFloat(im.value)||0, 
                     taxa_linha: parseFloat(l.querySelector('.input-taxa').value)||0
                 });
@@ -434,9 +461,23 @@
                     })
                 });
                 const data = await res.json();
-                if (res.ok) { alert("✅ " + data.mensagem); document.getElementById('corpo-tabela').innerHTML = ''; recalcularTabela(); }
-                else alert("❌ Erro: " + data.erro);
-            } catch (e) { alert("Erro de comunicação."); }
+                
+                if (res.ok) { 
+                    alert("✅ " + data.mensagem); 
+                    document.getElementById('corpo-tabela').innerHTML = ''; 
+                    
+                    // LIMPA O NOME DO ARQUIVO APÓS SALVAR
+                    const spanArquivo = document.getElementById('nome-arquivo-importado');
+                    spanArquivo.innerText = "(Nenhum arquivo importado)";
+                    spanArquivo.style.color = "#888";
+                    
+                    recalcularTabela(); 
+                } else {
+                    alert("❌ Erro: " + data.erro);
+                }
+            } catch (e) { 
+                alert("Erro de comunicação."); 
+            }
         }
     </script>
 </body>
