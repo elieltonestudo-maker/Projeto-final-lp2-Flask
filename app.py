@@ -151,8 +151,9 @@ def create_app():
             if match_data:
                 data_compra = match_data.group(1)
 
-            paises_compostos = ["Papua Nova Guiné", "Ilhas Salomão", "Reino Unido", "Nova Zelândia", "África do Sul", "Coreia do Sul", "Coreia do Norte", "Costa Rica", "El Salvador", "Estados Unidos", "Transnistria"]
-            lixos_qualquer_lugar = ["Rara", "Polimero", "Polímero", "Estrangeira", "Edição", "Comemorativa"]
+            # Adicionado Guatemala e Nigéria na lista
+            paises_compostos = ["Papua Nova Guiné", "Ilhas Salomão", "Reino Unido", "Nova Zelândia", "África do Sul", "Coreia do Sul", "Coreia do Norte", "Costa Rica", "El Salvador", "Estados Unidos", "Transnistria", "Guatemala", "Nigéria"]
+            lixos_qualquer_lugar = ["Rara", "Polimero", "Polímero", "Estrangeira", "Edição", "Comemorativa", "Aniversário", "Universidade", "Dr."]
 
             i = 0
             while i < len(linhas):
@@ -179,22 +180,22 @@ def create_app():
                             valor = float(valor_str)
                     
                     if descricao_completa and valor > 0:
-                        # 1. Limpa o início
+                        # 1. Limpa o início (O SEGREDO ESTÁ AQUI: remove "Cédula" mesmo sem artigo)
                         descricao = re.sub(r'^Cédula\s+(Estrangeira|da|do|de|dos|das)?\s*-\s*', '', descricao_completa, flags=re.IGNORECASE).strip()
                         descricao = re.sub(r'^Cédula\s+(Estrangeira|da|do|de|dos|das)\s+', '', descricao, flags=re.IGNORECASE).strip()
-                        
-                        # Remove artigos soltos que sobraram (ex: "dos Comores" -> "Comores")
+                        descricao = re.sub(r'^Cédula\s+', '', descricao, flags=re.IGNORECASE).strip() # <--- REMOVE "CÉDULA" SOZINHO
                         descricao = re.sub(r'^(dos|das|do|da|de)\s+', '', descricao, flags=re.IGNORECASE).strip()
                         
                         # 2. Remove parênteses
                         descricao = re.sub(r'\(.*?\)', '', descricao).strip()
                         
-                        # 3. EXTRAI O ANO PRIMEIRO (Para o 2025 não ser confundido com valor facial)
+                        # 3. A MÁGICA DO ANO: Pega TODOS os anos e escolhe o ÚLTIMO que apareceu
+                        anos_encontrados = re.findall(r'\b(?:19|20)\d{2}\b', descricao)
                         ano = ""
-                        match_ano = re.search(r'\b(19|20)\d{2}\b', descricao)
-                        if match_ano:
-                            ano = match_ano.group(0)
-                            descricao = descricao.replace(match_ano.group(0), '').strip()
+                        if anos_encontrados:
+                            ano = anos_encontrados[-1] # Pega o último
+                            # Remove APENAS o último ano da string
+                            descricao = descricao[::-1].replace(ano[::-1], '', 1)[::-1].strip()
                         
                         # 4. Extrai o PICK
                         pick = ""
@@ -281,6 +282,7 @@ def create_app():
             novo_lote = Lote(
                 vendedor_id=vendedor.id,
                 tipo=dados.get('tipo', 'Leilão Oficial'),
+                origem=dados.get('origem', 'Leilão Oficial'), # <-- Pega a origem do JS
                 frete=float(dados.get('frete', 0.0)),
                 custos_extras=float(dados.get('custos_extras', 0.0))
             )

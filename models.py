@@ -13,19 +13,21 @@ class Vendedor(db.Model):
 
 class Lote(db.Model):
     __tablename__ = 'lotes'
+    
     id = db.Column(db.Integer, primary_key=True)
     vendedor_id = db.Column(db.Integer, db.ForeignKey('vendedores.id'), nullable=False)
     tipo = db.Column(db.String(50))
+    origem = db.Column(db.String(50)) # <-- NOVA COLUNA
     frete = db.Column(db.Float, default=0.0)
     custos_extras = db.Column(db.Float, default=0.0)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow)
 
-    vendedor = db.relationship('Vendedor', backref='lotes')
-    cedulas = db.relationship('Cedula', backref='lote', cascade="all, delete-orphan")
+    # ... relacionamentos ...
 
-    def __init__(self, vendedor_id, tipo, frete, custos_extras):
+    def __init__(self, vendedor_id, tipo, origem, frete, custos_extras): # <-- Adicione origem aqui
         self.vendedor_id = vendedor_id
         self.tipo = tipo
+        self.origem = origem
         self.frete = frete
         self.custos_extras = custos_extras
 
@@ -41,7 +43,7 @@ class Cedula(db.Model):
     catalogo = db.Column(db.String(50))
     estado = db.Column(db.String(20))
     
-    # NOVOS CAMPOS
+    # ESSAS TRÊS COLUNAS SÃO AS QUE ESTÃO FALTANDO
     quantidade = db.Column(db.Integer, default=1)
     data_compra = db.Column(db.String(20))
     ref_lote = db.Column(db.String(50))

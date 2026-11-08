@@ -107,6 +107,18 @@
         </div>
     </div>
 
+    <!-- MODAL DE ALERTA CUSTOMIZADO -->
+    <div class="modal-overlay" id="modal-alerta">
+        <div class="modal-box" style="max-width: 450px;">
+            <h3 id="alerta-titulo" style="color: var(--gold-accent); margin-top: 0;">⚠️ Atenção</h3>
+            <p id="alerta-mensagem" style="font-size: 14px; margin-bottom: 20px;">Mensagem aqui...</p>
+            
+            <div class="modal-actions" id="alerta-botoes">
+                <!-- Os botões são injetados via JavaScript -->
+            </div>
+        </div>
+    </div>
+
     <div class="header">Aquisições</div>
 
     <div class="tabs-container">
@@ -118,17 +130,32 @@
         <div class="panel">
             <h3 class="panel-title">ℹ️ INFORMAÇÕES DO LOTE</h3>
             <div class="input-group">
-                <label>Tipo:</label>
-                <select id="tipo-lote" onchange="atualizarTaxaGlobal()"><option>Leilão Oficial</option><option>Venda Direta</option></select>
+                
+                <!-- ORIGEM NO LUGAR DO TIPO -->
+                <label>Origem:</label>
+                <select id="tipo-lote" onchange="atualizarTaxaGlobal()" style="width: 170px;">
+                    <option value="Leilão Oficial">🏛️ Leilão Oficial</option>
+                    <option value="Venda Pessoal">👤 Venda Pessoal</option>
+                    <option value="WhatsApp">📞 WhatsApp</option>
+                    <option value="Facebook">👥 Facebook</option>
+                    <option value="E-commerce">🌐 E-commerce</option>
+                </select>
+
                 <label>Vendedor:</label>
-                <input type="text" id="vendedor-lote" placeholder="Buscar vendedor..." style="width: 200px;">
+                <div style="position: relative; display: inline-block;">
+                    <input type="text" id="vendedor-lote" placeholder="Buscar vendedor..." style="width: 180px;" autocomplete="off" onfocus="mostrarDropdownVendedores()" oninput="filtrarVendedores()">
+                    <div id="dropdown-vendedores" style="display: none; position: absolute; top: 100%; left: 0; width: 100%; background: var(--input-bg); border: 1px solid var(--gold-accent); border-radius: 5px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.5);"></div>
+                </div>
+
                 <label>Frete:</label>
-                <div class="money-input-container"><span class="money-symbol">R$</span><input type="number" id="frete-lote" placeholder="0.00" oninput="recalcularTabela()"></div>
-                <label style="display: flex; align-items: center; gap: 5px;"><input type="checkbox" id="check-extras"> Custos Extras?</label>
-                <div class="money-input-container" id="container-extras" style="display: none;"><span class="money-symbol">R$</span><input type="number" id="input-extras" placeholder="0.00" oninput="recalcularTabela()"></div>
+                <div class="money-input-container"><span class="money-symbol">R$</span><input type="number" id="frete-lote" placeholder="0.00" style="width: 60px;" oninput="recalcularTabela()"></div>
+                
+                <label style="display: flex; align-items: center; gap: 5px;">
+                    <input type="checkbox" id="check-extras"> Custos Extras?
+                </label>
+                <div class="money-input-container" id="container-extras" style="display: none;"><span class="money-symbol">R$</span><input type="number" id="input-extras" placeholder="0.00" style="width: 60px;" oninput="recalcularTabela()"></div>
             </div>
         </div>
-
         <div class="panel" style="padding-bottom: 80px;">
             <!-- TÍTULO E NOME DO ARQUIVO LADO A LADO -->
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
@@ -184,7 +211,10 @@
             </div>
         </div>
         
-        <button class="btn" style="width: 100%; max-width: 600px; display: block; margin: 0 auto; padding: 15px; font-size: 16px;" onclick="salvarLote()">💾 SALVAR LOTE COMPLETO</button>
+        <div style="display: flex; gap: 10px; max-width: 600px; margin: 0 auto;">
+            <button class="btn btn-danger" style="flex: 1; padding: 15px; font-size: 16px;" onclick="limparTudo()">✖ CANCELAR / LIMPAR</button>
+            <button class="btn" style="flex: 2; padding: 15px; font-size: 16px;" onclick="salvarLote()">💾 SALVAR LOTE COMPLETO</button>
+        </div>
     </div>
 
     <div id="tab-pesquisar" class="tab-content">
@@ -197,6 +227,80 @@
         let dadosNovaImportacao = null; 
         let tipoNovaImportacao = "";    
         let nomeNovoArquivo = "";       
+        // --- LÓGICA DO DROPDOWN DE VENDEDORES ---
+        let listaVendedores = ["Rivaldo Dantas", "Pariz Moedas", "Filatélica Brasil", "Tenor e Pellizzari", "Numismática Brasil Leilões"]; 
+
+        function mostrarDropdownVendedores() {
+            const dropdown = document.getElementById('dropdown-vendedores');
+            const input = document.getElementById('vendedor-lote');
+            
+            if (input.value.trim() === "") {
+                renderizarDropdown(listaVendedores);
+            }
+            dropdown.style.display = 'block';
+        }
+
+        function filtrarVendedores() {
+            const input = document.getElementById('vendedor-lote');
+            const termo = input.value.toLowerCase();
+            const dropdown = document.getElementById('dropdown-vendedores');
+            
+            const filtrados = listaVendedores.filter(v => v.toLowerCase().includes(termo));
+            renderizarDropdown(filtrados);
+            dropdown.style.display = 'block';
+        }
+
+        function renderizarDropdown(lista) {
+            const dropdown = document.getElementById('dropdown-vendedores');
+            dropdown.innerHTML = ""; 
+            
+            lista.forEach(nome => {
+                const item = document.createElement('div');
+                item.style.padding = "10px";
+                item.style.cursor = "pointer";
+                item.style.color = "var(--text-color)";
+                item.style.borderBottom = "1px solid var(--border-color)";
+                item.innerText = nome;
+                
+                item.onclick = () => {
+                    document.getElementById('vendedor-lote').value = nome;
+                    dropdown.style.display = 'none';
+                };
+                
+                item.onmouseover = () => item.style.background = "#333";
+                item.onmouseout = () => item.style.background = "transparent";
+                dropdown.appendChild(item);
+            });
+
+            // Opção de adicionar novo vendedor
+            const itemNovo = document.createElement('div');
+            itemNovo.style.padding = "10px";
+            itemNovo.style.cursor = "pointer";
+            itemNovo.style.color = "var(--gold-accent)";
+            itemNovo.style.fontWeight = "bold";
+            itemNovo.innerText = "+ Cadastrar novo vendedor...";
+            
+            itemNovo.onclick = () => {
+                const novoNome = prompt("Digite o nome do novo vendedor:");
+                if (novoNome && novoNome.trim() !== "") {
+                    listaVendedores.push(novoNome.trim()); 
+                    document.getElementById('vendedor-lote').value = novoNome.trim();
+                    dropdown.style.display = 'none';
+                    mostrarAlerta("✅ Sucesso", `Vendedor "${novoNome}" cadastrado!`, "sucesso");
+                }
+            };
+            dropdown.appendChild(itemNovo);
+        }
+
+        // Fecha o dropdown se clicar fora dele
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('dropdown-vendedores');
+            const input = document.getElementById('vendedor-lote');
+            if (dropdown && input && !dropdown.contains(event.target) && event.target !== input) {
+                dropdown.style.display = 'none';
+            }
+        });
+
 
         function fecharModal() { document.getElementById('modal-confirmacao').style.display = 'none'; }
 
@@ -250,6 +354,53 @@
             };
         }
 
+        // --- SISTEMA DE ALERTAS CUSTOMIZADOS ---
+        function mostrarAlerta(titulo, mensagem, tipo = 'aviso') {
+            const modal = document.getElementById('modal-alerta');
+            const txtTitulo = document.getElementById('alerta-titulo');
+            const txtMsg = document.getElementById('alerta-mensagem');
+            const containerBotoes = document.getElementById('alerta-botoes');
+            
+            txtTitulo.innerText = titulo;
+            txtMsg.innerText = mensagem;
+            
+            containerBotoes.innerHTML = `<button class="btn btn-outline" onclick="fecharAlerta()">OK</button>`;
+            
+            if (tipo === 'sucesso') txtTitulo.style.color = '#28a745';
+            else if (tipo === 'erro') txtTitulo.style.color = '#ff4d4d';
+            else txtTitulo.style.color = 'var(--gold-accent)';
+            
+            modal.style.display = 'flex';
+        }
+
+        function mostrarConfirmacao(titulo, mensagem, callbackSim) {
+            const modal = document.getElementById('modal-alerta');
+            const txtTitulo = document.getElementById('alerta-titulo');
+            const txtMsg = document.getElementById('alerta-mensagem');
+            const containerBotoes = document.getElementById('alerta-botoes');
+            
+            txtTitulo.innerText = titulo;
+            txtTitulo.style.color = 'var(--gold-accent)';
+            txtMsg.innerText = mensagem;
+            
+            containerBotoes.innerHTML = `
+                <button class="btn btn-outline" onclick="fecharAlerta()">Cancelar</button>
+                <button class="btn btn-danger" id="btn-sim-alerta">Sim, Continuar</button>
+            `;
+            
+            document.getElementById('btn-sim-alerta').onclick = () => {
+                fecharAlerta();
+                callbackSim();
+            };
+            
+            modal.style.display = 'flex';
+        }
+
+        function fecharAlerta() {
+            document.getElementById('modal-alerta').style.display = 'none';
+        }
+              
+
         function switchTab(t) {
             document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -288,10 +439,10 @@
                         spanArquivo.style.color = "var(--gold-accent)";
                     }
                 } else {
-                    alert('Nenhuma cédula encontrada no PDF.');
+                    mostrarAlerta("❌ Atenção", "Nenhuma cédula encontrada no PDF.", "erro");
                 }
             } catch (e) { 
-                alert('Erro no PDF.'); 
+                mostrarAlerta("❌ Erro no PDF", "Não foi possível ler o arquivo. Verifique se ele é válido.", "erro"); 
             } finally { 
                 btn.innerHTML = txt; form.reset(); 
             }
@@ -358,7 +509,7 @@
 
         function abrirModalExclusaoMassa() {
             const sel = document.querySelectorAll('.check-selecao:checked');
-            if (sel.length === 0) return alert("Selecione alguma cédula.");
+            if (sel.length === 0) return mostrarAlerta("⚠️ Aviso", "Selecione alguma cédula.", "aviso");
             document.getElementById('modal-mensagem').innerText = `Excluir ${sel.length} cédula(s)?`;
             document.getElementById('modal-confirmacao').style.display = 'flex';
             document.getElementById('btn-confirmar-exclusao').onclick = () => {
@@ -373,7 +524,7 @@
         }
 
         function desfazerExclusao() {
-            if (historicoExclusao.length === 0) return alert("Não há exclusões recentes para desfazer.");
+            if (historicoExclusao.length === 0) return mostrarAlerta("⚠️ Aviso", "Não há exclusões recentes para desfazer.", "aviso");
             const tbody = document.getElementById('corpo-tabela');
             const linhaRestaurada = historicoExclusao.pop();
             tbody.appendChild(linhaRestaurada);
@@ -389,7 +540,7 @@
             const e = document.getElementById('massa-estado').value;
             const sel = document.querySelectorAll('.check-selecao:checked');
             
-            if (sel.length === 0) return alert("Selecione alguma cédula.");
+            if (sel.length === 0) return mostrarAlerta("⚠️ Aviso", "Selecione pelo menos uma cédula.", "aviso");
 
             if (d.length > 0) {
                 let nums = d.replace(/\D/g, '');
@@ -398,9 +549,9 @@
                     if(ano.length===2) ano = "20"+ano;
                     d = `${dia}/${mes}/${ano}`; dInput.value = d;
                     const partes = d.split('/'); const dt = new Date(partes[2], partes[1]-1, partes[0]); const hj = new Date(); hj.setHours(0,0,0,0);
-                    if (dt > hj || isNaN(dt.getTime())) { dInput.classList.add('data-invalida'); return alert("Data futura ou inválida."); }
+                    if (dt > hj || isNaN(dt.getTime())) { dInput.classList.add('data-invalida'); return mostrarAlerta("❌ Erro", "Data futura ou inválida.", "erro"); }
                     else dInput.classList.remove('data-invalida');
-                } else return alert("Data incompleta.");
+                } else return mostrarAlerta("⚠️ Aviso", "Data incompleta.", "aviso");
             }
 
             sel.forEach(cb => {
@@ -471,70 +622,109 @@
             document.getElementById('total-geral').innerText = `R$ ${totalGeral.toFixed(2).replace('.',',')}`;
         }
 
-        async function salvarLote() {
-            const dInvs = document.querySelectorAll('.data-invalida');
-            const vazias = Array.from(document.querySelectorAll('.input-data')).some(i => !i.value.trim());
-            if (dInvs.length > 0 || vazias) return alert("Existem datas inválidas ou em branco.");
-
-            const confirmar = confirm("⚠️ Atenção: Você tem certeza que deseja salvar este lote?\n\nSe você já salvou este mesmo lote antes, os dados serão duplicados no banco.");
-            if (!confirmar) return;
-
-            const linhas = document.querySelectorAll('#corpo-tabela tr'); const ceds = [];
-            linhas.forEach(l => {
-                const im = l.querySelector('.input-martelo'); 
-                const iq = l.querySelector('.input-qtd');
-                if(!im || !iq) return;
-                
-                ceds.push({
-                    pais: l.querySelector('.input-pais').value, 
-                    descricao: l.querySelector('.input-valor-facial').value,
-                    estado: l.querySelector('.input-estado').value, 
-                    data: l.querySelector('.input-data').value, 
-                    ref_lote: l.querySelector('.input-ref').value,
-                    codigo: l.querySelector('.input-pick').value, 
-                    ano: l.querySelector('.input-ano').value,
-                    quantidade: parseInt(iq.value) || 1,
-                    martelo: parseFloat(im.value)||0, 
-                    taxa_linha: parseFloat(l.querySelector('.input-taxa').value)||0
-                });
-            });
-            if (ceds.length === 0) return alert("Adicione cédulas.");
-
-            try {
-                const res = await fetch('/salvar_lote', {
-                    method: 'POST', headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({
-                        vendedor: document.getElementById('vendedor-lote').value || "Sem nome", 
-                        tipo: document.getElementById('tipo-lote').value,
-                        frete: parseFloat(document.getElementById('frete-lote').value)||0,
-                        custos_extras: document.getElementById('check-extras').checked ? (parseFloat(document.getElementById('input-extras').value)||0) : 0,
-                        cedulas: ceds
-                    })
-                });
-                const data = await res.json();
-                
-                if (res.ok) { 
-                    alert("✅ " + data.mensagem); 
-                    document.getElementById('corpo-tabela').innerHTML = ''; 
+        // --- FUNÇÃO PARA LIMPAR TUDO ---
+        function limparTudo() {
+            mostrarConfirmacao(
+                "⚠️ Cancelar Cadastro", 
+                "Tem certeza que deseja cancelar este cadastro? Todos os dados da tabela, o vendedor e o frete serão apagados.",
+                () => {
+                    // Limpa a tabela
+                    document.getElementById('corpo-tabela').innerHTML = '';
+                    
+                    // Limpa os campos do lote
+                    document.getElementById('vendedor-lote').value = '';
+                    document.getElementById('frete-lote').value = '';
+                    document.getElementById('check-extras').checked = false;
+                    document.getElementById('container-extras').style.display = 'none';
+                    document.getElementById('input-extras').value = '';
+                    
+                    // Reseta o tipo
+                    document.getElementById('tipo-lote').value = 'Leilão Oficial';
+                    atualizarTaxaGlobal();
+                    
+                    // Limpa o nome do arquivo
                     const spanArquivo = document.getElementById('nome-arquivo-importado');
                     spanArquivo.innerText = "(Nenhum arquivo importado)";
                     spanArquivo.style.color = "#888";
-                    recalcularTabela(); 
-                } else {
-                    alert("❌ Erro: " + data.erro);
+                    
+                    // Limpa os campos de ação em massa
+                    document.getElementById('massa-data').value = '';
+                    document.getElementById('massa-ref').value = '';
+                    document.getElementById('massa-estado').value = '';
+                    
+                    recalcularTabela();
+                    historicoExclusao = [];
+                    
+                    // Mostra o alerta de sucesso
+                    mostrarAlerta("✅ Tela Limpa", "Pronto para um novo cadastro!", "sucesso");
                 }
-            } catch (e) { 
-                alert("Erro de comunicação."); 
-            }
+            );
         }
+        
+        async function salvarLote() {
+            const dInvs = document.querySelectorAll('.data-invalida');
+            const vazias = Array.from(document.querySelectorAll('.input-data')).some(i => !i.value.trim());
+            if (dInvs.length > 0 || vazias) return mostrarAlerta("❌ Erro", "Existem datas inválidas ou em branco.", "erro");
 
+            mostrarConfirmacao("⚠️ Salvar Lote", "Você tem certeza que deseja salvar este lote?\nSe já salvou antes, os dados serão duplicados.", async () => {
+                // O código de salvar (linhas.forEach, fetch, etc) entra AQUI DENTRO
+                const linhas = document.querySelectorAll('#corpo-tabela tr'); const ceds = [];
+                linhas.forEach(l => {
+                    const im = l.querySelector('.input-martelo'); 
+                    const iq = l.querySelector('.input-qtd');
+                    if(!im || !iq) return;
+                    
+                    ceds.push({
+                        pais: l.querySelector('.input-pais').value, 
+                        descricao: l.querySelector('.input-valor-facial').value,
+                        estado: l.querySelector('.input-estado').value, 
+                        data: l.querySelector('.input-data').value, 
+                        ref_lote: l.querySelector('.input-ref').value,
+                        codigo: l.querySelector('.input-pick').value, 
+                        ano: l.querySelector('.input-ano').value,
+                        quantidade: parseInt(iq.value) || 1,
+                        martelo: parseFloat(im.value)||0, 
+                        taxa_linha: parseFloat(l.querySelector('.input-taxa').value)||0
+                    });
+                });
+                if (ceds.length === 0) return mostrarAlerta("⚠️ Aviso", "Adicione cédulas antes de salvar.", "aviso");
+
+                try {
+                    const res = await fetch('/salvar_lote', {
+                        method: 'POST', headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({
+                            vendedor: document.getElementById('vendedor-lote').value || "Sem nome", 
+                            tipo: document.getElementById('tipo-lote').value,
+                            origem: document.getElementById('tipo-lote').value, // <-- Corrigido
+                            frete: parseFloat(document.getElementById('frete-lote').value)||0,
+                            custos_extras: document.getElementById('check-extras').checked ? (parseFloat(document.getElementById('input-extras').value)||0) : 0,
+                            cedulas: ceds
+                            })
+                    });
+                    const data = await res.json();
+                    
+                    if (res.ok) { 
+                        mostrarAlerta("✅ Sucesso", data.mensagem, "sucesso"); 
+                        document.getElementById('corpo-tabela').innerHTML = ''; 
+                        const spanArquivo = document.getElementById('nome-arquivo-importado');
+                        spanArquivo.innerText = "(Nenhum arquivo importado)";
+                        spanArquivo.style.color = "#888";
+                        recalcularTabela(); 
+                    } else {
+                        mostrarAlerta("❌ Erro no Servidor", data.erro, "erro");
+                    }
+                } catch (e) { 
+                    mostrarAlerta("❌ Erro de Comunicação", "Não foi possível conectar ao servidor.", "erro"); 
+                }
+            });
+        }
         // --- LÓGICA DO MODAL DE TEXTO ---
         function abrirModalTexto() { document.getElementById('modal-texto').style.display = 'flex'; document.getElementById('texto-email').focus(); }
         function fecharModalTexto() { document.getElementById('modal-texto').style.display = 'none'; document.getElementById('texto-email').value = ''; }
 
         async function processarTexto() {
             const texto = document.getElementById('texto-email').value;
-            if (!texto.trim()) return alert("Por favor, cole algum texto antes de processar.");
+            if (!texto.trim()) return mostrarAlerta("⚠️ Aviso", "Por favor, cole algum texto antes de processar.", "aviso");
 
             const btn = document.getElementById('btn-processar-texto');
             const txtOriginal = btn.innerHTML;
@@ -573,10 +763,10 @@
                     }
                     fecharModalTexto();
                 } else {
-                    alert(data.erro || "Nenhuma cédula encontrada no texto.");
+                    mostrarAlerta("❌ Atenção", data.erro || "Nenhuma cédula encontrada no texto.", "erro");
                 }
             } catch (e) {
-                alert("Erro ao processar o texto.");
+                mostrarAlerta("❌ Erro", "Falha ao processar o texto.", "erro");
             } finally {
                 btn.innerHTML = txtOriginal;
                 btn.disabled = false;
