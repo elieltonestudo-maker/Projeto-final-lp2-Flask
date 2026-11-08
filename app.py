@@ -133,23 +133,136 @@ def create_app():
     def index():
         return render_template('index.html')
 
-    @app.route('/processar_pdf', methods=['POST'])
-    def processar_pdf():
-        if 'arquivo_pdf' not in request.files:
-            return jsonify({'erro': 'Nenhum arquivo enviado'}), 400
+    @app.route('/processar_texto', methods=['POST'])
+    def processar_texto():
+        dados = request.get_json()
+        texto = dados.get('texto', '')
         
-        arquivo = request.files['arquivo_pdf']
-        if arquivo.filename == '':
-            return jsonify({'erro': 'Nenhum arquivo selecionado'}), 400
+        if not texto:
+            return jsonify({'erro': 'Nenhum texto recebido'}), 400
 
         try:
-            processador = ProcessadorPDF(arquivo)
-            processador.extrair_texto()
-            cedulas = processador.extrair_cedulas()
-            return jsonify({'cedulas': cedulas})
-        except Exception as e:
-            return jsonify({'erro': f'Erro ao ler o PDF: {str(e)}'}), 500
+            cedulas_extraidas = []
+            linhas = texto.split('\n')
+            linhas = [l.strip() for l in linhas if l.strip()]
 
+            data_compra = ""
+            match_data = re.search(r'\b(\d{2}/\d{2}/\d{4})\b', texto)
+            if match_data:
+                data_compra = match_data.group(1)
+
+            paises_compostos = ["Papua Nova Guiné", "Ilhas Salomão", "Reino Unido", "Nova Zelândia", "África do Sul", "Coreia do Sul", "Coreia do Norte", "Costa Rica", "El Salvador", "Estados Unidos", "Transnistria"]
+            lixos_qualquer_lugar = ["Rara", "Polimero", "Polímero", "Estrangeira", "Edição", "Comemorativa"]
+
+            i = 0
+            while i < len(linhas):
+                linha = linhas[i]
+                
+                if any(palavra in linha.lower() for palavra in ['sedex', 'frete', 'total', 'desconto', 'pago', 'pendente', 'dados bancários', 'pix:', 'banco']):
+                    i += 1
+                    continue
+                
+                match_lote = re.match(r'Lote:\s*(\d+)', linha, re.IGNORECASE)
+                
+                if match_lote:
+                    lote = match_lote.group(1)
+                    descricao_completa = ""
+                    valor = 0.0
+                    
+                    if (i + 1) < len(linhas):
+                        descricao_completa = linhas[i+1]
+                    if (i + 2) < len(linhas):
+                        linha_valor = linhas[i+2]
+                        match_valor = re.search(r'R\$\s*([\d\.,]+)', linha_valor)
+                        if match_valor:
+                            valor_str = match_valor.group(1).replace(',', '.')
+                            valor = float(valor_str)
+                    
+                    if descricao_completa and valor > 0:
+                        # 1. Limpa o início
+                        descricao = re.sub(r'^Cédula\s+(Estrangeira|da|do|de|dos|das)?\s*-\s*', '', descricao_completa, flags=re.IGNORECASE).strip()
+                        descricao = re.sub(r'^Cédula\s+(Estrangeira|da|do|de|dos|das)\s+', '', descricao, flags=re.IGNORECASE).strip()
+                        
+                        # Remove artigos soltos que sobraram (ex: "dos Comores" -> "Comores")
+                        descricao = re.sub(r'^(dos|das|do|da|de)\s+', '', descricao, flags=re.IGNORECASE).strip()
+                        
+                        # 2. Remove parênteses
+                        descricao = re.sub(r'\(.*?\)', '', descricao).strip()
+                        
+                        # 3. EXTRAI O ANO PRIMEIRO (Para o 2025 não ser confundido com valor facial)
+                        ano = ""
+                        match_ano = re.search(r'\b(19|20)\d{2}\b', descricao)
+                        if match_ano:
+                            ano = match_ano.group(0)
+                            descricao = descricao.replace(match_ano.group(0), '').strip()
+                        
+                        # 4. Extrai o PICK
+                        pick = ""
+                        match_pick = re.search(r'\bP-?\s*\d+[a-z]*\b', descricao, re.IGNORECASE)
+                        if match_pick:
+                            pick = match_pick.group(0).upper()
+                            descricao = descricao.replace(match_pick.group(0), '').strip()
+                        
+                        # 5. Extrai o ESTADO
+                        estado = traduzir_estado(descricao) or "R"
+                        for sigla, variacoes in ESTADOS_CONSERVACAO.items():
+                            for v in variacoes:
+                                descricao = re.sub(rf'\b{re.escape(v)}\b', '', descricao, flags=re.IGNORECASE)
+                        
+                        # 6. LIMPEZA FINAL DA DESCRIÇÃO
+                        descricao = descricao.replace('-', ' ').strip()
+                        descricao = re.sub(r'\s+', ' ', descricao).strip()
+                        
+                        # Separa País e Descrição
+                        pais = "Desconhecido"
+                        descricao_final = descricao.title()
+                        
+                        for pc in paises_compostos:
+                            if descricao.lower().startswith(pc.lower()):
+                                pais = pc
+                                descricao_final = descricao[len(pc):].strip().title()
+                                break
+                        
+                        if pais == "Desconhecido" and descricao.split():
+                            partes = descricao.split()
+                            pais = partes[0]
+                            descricao_final = ' '.join(partes[1:]).strip().title()
+
+                        # Remove lixos de qualquer lugar
+                        for lixo in lixos_qualquer_lugar:
+                            descricao_final = re.sub(rf'\b{lixo}\b', '', descricao_final, flags=re.IGNORECASE).strip()
+
+                        # Remove a última palavra se for curta (Sob, Ec, etc)
+                        palavras_desc = descricao_final.split()
+                        if palavras_desc:
+                            ultima_palavra = palavras_desc[-1]
+                            if len(ultima_palavra) <= 3 or '/' in ultima_palavra:
+                                palavras_desc.pop()
+
+                        descricao_final = ' '.join(palavras_desc).strip()
+                        descricao_final = re.sub(r'\s+', ' ', descricao_final).strip()
+
+                        cedulas_extraidas.append({
+                            'codigo': lote,
+                            'pais': pais,
+                            'descricao': descricao_final,
+                            'ano': ano,
+                            'estado': estado,
+                            'pick': pick,
+                            'quantidade': 1,
+                            'valor': valor,
+                            'data': data_compra
+                        })
+                        
+                        i += 3
+                        continue
+                
+                i += 1
+
+            return jsonify({'cedulas': cedulas_extraidas})
+        except Exception as e:
+            return jsonify({'erro': f'Erro ao ler o texto: {str(e)}'}), 500
+        
     @app.route('/salvar_lote', methods=['POST'])
     def salvar_lote():
         dados = request.get_json()
@@ -180,8 +293,11 @@ def create_app():
                     pais=cedula_data.get('pais', ''),
                     valor_facial=cedula_data.get('descricao', ''),
                     ano=cedula_data.get('ano', ''),
-                    catalogo=cedula_data.get('codigo', ''),
-                    estado=cedula_data.get('estado', 'FE'),
+                    catalogo=cedula_data.get('codigo', ''), # O Pick
+                    estado=cedula_data.get('estado', 'R'),
+                    quantidade=int(cedula_data.get('quantidade', 1)),
+                    data_compra=cedula_data.get('data', ''),
+                    ref_lote=cedula_data.get('ref_lote', ''),
                     martelo=float(cedula_data.get('martelo', 0.0)),
                     taxa_leilao=float(cedula_data.get('taxa_linha', 0.0))
                 )

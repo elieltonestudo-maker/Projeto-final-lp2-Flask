@@ -66,12 +66,43 @@
 </head>
 <body>
 
+    <!-- MODAL DE CONFIRMAÇÃO (Excluir) -->
     <div class="modal-overlay" id="modal-confirmacao">
         <div class="modal-box">
             <p id="modal-mensagem">Tem certeza?</p>
             <div class="modal-actions">
                 <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
                 <button class="btn btn-danger" id="btn-confirmar-exclusao">Sim, Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE IMPORTAR TEXTO -->
+    <div class="modal-overlay" id="modal-texto">
+        <div class="modal-box" style="max-width: 600px; text-align: left;">
+            <h3 style="color: var(--gold-accent); margin-top: 0;">📥 Importar Texto (E-mail / WhatsApp)</h3>
+            <p style="font-size: 13px; color: #aaa;">Cole o texto abaixo. O robô vai tentar extrair os dados automaticamente.</p>
+            
+            <textarea id="texto-email" style="width: 100%; height: 250px; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 5px; padding: 10px; font-family: monospace; resize: vertical; outline: none;" placeholder="Cole aqui o texto do e-mail ou WhatsApp..."></textarea>
+            
+            <div class="modal-actions" style="justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="fecharModalTexto()">Cancelar</button>
+                <button class="btn" id="btn-processar-texto" onclick="processarTexto()">Processar Texto ⚙️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMAÇÃO DE IMPORTAÇÃO -->
+    <div class="modal-overlay" id="modal-importacao">
+        <div class="modal-box" style="max-width: 500px;">
+            <h3 style="color: var(--gold-accent); margin-top: 0;">⚠️ Atenção</h3>
+            <p style="font-size: 14px;">Já existem cédulas na tabela atual.</p>
+            <p style="font-size: 14px; color: #aaa;">O que você deseja fazer com os dados do novo arquivo?</p>
+            
+            <div class="modal-actions" style="flex-direction: column; gap: 10px;">
+                <button class="btn" style="width: 100%;" onclick="decidirImportacao('adicionar')">➕ Adicionar à tabela atual</button>
+                <button class="btn btn-danger" style="width: 100%;" onclick="decidirImportacao('substituir')">🗑️ Substituir tudo pelo novo</button>
+                <button class="btn btn-outline" style="width: 100%;" onclick="fecharModalImportacao()">Cancelar</button>
             </div>
         </div>
     </div>
@@ -107,7 +138,7 @@
                 </span>
             </div>
             
-            <!-- BARRA DE AÇÕES EM MASSA (Agora com botão Desfazer) -->
+            <!-- BARRA DE AÇÕES EM MASSA -->
             <div class="input-group" style="justify-content: space-between; margin-bottom: 15px; padding: 10px; background: #2a2a2a; border-radius: 5px;">
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                     <label style="color: var(--gold-accent); font-weight: bold;">Ações em Massa:</label>
@@ -121,7 +152,7 @@
                     <button class="btn btn-undo" onclick="desfazerExclusao()" title="Desfazer última exclusão">↺ Desfazer</button>
                 </div>
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn">📥 Importar Texto</button>
+                    <button class="btn" onclick="abrirModalTexto()">📥 Importar Texto</button>
                     <form id="form-pdf" action="/processar_pdf" method="POST" enctype="multipart/form-data" style="display: inline;" onsubmit="event.preventDefault(); processarArquivo(this);">
                         <input type="file" name="arquivo_pdf" id="input-pdf" accept=".pdf" style="display: none;" onchange="document.getElementById('form-pdf').requestSubmit();">
                         <button type="button" class="btn" onclick="document.getElementById('input-pdf').click();">📥 Importar PDF</button>
@@ -133,7 +164,7 @@
                     <tr>
                         <th><input type="checkbox" id="check-todos" onclick="selecionarTodos(this)"></th>
                         <th>Nº</th><th>Data</th><th>Ref. / Lote</th><th>País</th><th>Valor</th><th>Pick</th><th>Ano</th><th>Estado</th>
-                        <th>Qtd</th> <!-- NOVA COLUNA AQUI -->
+                        <th>Qtd</th>
                         <th>Martelo</th><th>Taxa (%)</th><th>Subtotal</th><th>Rateio</th><th>Custo Final</th><th>Ação</th>
                     </tr>
                 </thead>
@@ -160,11 +191,44 @@
         <div class="panel"><h3 class="panel-title">Pesquisa (Em breve)</h3></div>
     </div>
 
+    <!-- O JavaScript vem na Parte 2 -->
     <script>
-        let historicoExclusao = []; // Guarda as linhas apagadas
+        let historicoExclusao = []; 
+        let dadosNovaImportacao = null; 
+        let tipoNovaImportacao = "";    
+        let nomeNovoArquivo = "";       
 
         function fecharModal() { document.getElementById('modal-confirmacao').style.display = 'none'; }
 
+        // --- LÓGICA DO MODAL DE IMPORTAÇÃO ---
+        function abrirModalImportacao() { document.getElementById('modal-importacao').style.display = 'flex'; }
+        function fecharModalImportacao() {
+            document.getElementById('modal-importacao').style.display = 'none';
+            dadosNovaImportacao = null;
+            tipoNovaImportacao = "";
+            nomeNovoArquivo = "";
+        }
+
+        function decidirImportacao(acao) {
+            const tbody = document.getElementById('corpo-tabela');
+            if (acao === 'substituir') tbody.innerHTML = ''; 
+
+            if (dadosNovaImportacao) {
+                dadosNovaImportacao.forEach(c => {
+                    const tr = criarLinhaHTML(c.pais, c.descricao, c.ano, c.valor, c.estado, c.pick, c.quantidade);
+                    tr.querySelector('.input-ref').value = c.codigo;
+                    if (c.data) tr.querySelector('.input-data').value = c.data;
+                    tbody.appendChild(tr);
+                });
+                atualizarNumeracao(); recalcularTabela();
+                const spanArquivo = document.getElementById('nome-arquivo-importado');
+                spanArquivo.innerText = `📄 ${nomeNovoArquivo}`;
+                spanArquivo.style.color = "var(--gold-accent)";
+            }
+            fecharModalImportacao();
+        }
+
+        // --- MÁSCARA DE DATA ---
         function aplicarMascaraData(input) {
             let valor = input.value.replace(/\D/g, ''); if (valor.length > 8) valor = valor.slice(0, 8);
             if (valor.length === 0) { input.value = ""; input.classList.remove('data-invalida'); return; }
@@ -199,10 +263,9 @@
             recalcularTabela();
         });
 
+        // --- IMPORTAÇÃO DE PDF ---
         async function processarArquivo(form) {
             const btn = form.querySelector('button'); const txt = btn.innerHTML; btn.innerHTML = '⏳...';
-            
-            // 1. Pega o nome do arquivo do input
             const fileInput = form.querySelector('input[type="file"]');
             const nomeArquivo = fileInput.files.length > 0 ? fileInput.files[0].name : "";
 
@@ -211,15 +274,21 @@
                 const data = await res.json();
                 
                 if (data.cedulas?.length > 0) {
-                    renderizarTabela(data.cedulas); 
+                    const temLinhas = document.getElementById('corpo-tabela').querySelectorAll('tr').length > 0;
                     
-                    // 2. Atualiza o nome do arquivo na tela
-                    const spanArquivo = document.getElementById('nome-arquivo-importado');
-                    spanArquivo.innerText = `📄 ${nomeArquivo}`;
-                    spanArquivo.style.color = "var(--gold-accent)";
-                    
+                    if (temLinhas) {
+                        dadosNovaImportacao = data.cedulas;
+                        tipoNovaImportacao = 'pdf';
+                        nomeNovoArquivo = nomeArquivo;
+                        abrirModalImportacao();
+                    } else {
+                        renderizarTabela(data.cedulas);
+                        const spanArquivo = document.getElementById('nome-arquivo-importado');
+                        spanArquivo.innerText = `📄 ${nomeArquivo}`;
+                        spanArquivo.style.color = "var(--gold-accent)";
+                    }
                 } else {
-                    alert('Nenhuma cédula.');
+                    alert('Nenhuma cédula encontrada no PDF.');
                 }
             } catch (e) { 
                 alert('Erro no PDF.'); 
@@ -235,13 +304,11 @@
             recalcularTabela();
         }
 
-        // Função para criar a linha (agora com campo QTD)
-        function criarLinhaHTML(p="", v="", a="", m=0, est="R", pk="", qtd="1") { // <-- Padrão 'R' aqui
+        function criarLinhaHTML(p="", v="", a="", m=0, est="R", pk="", qtd="1") {
             const estados = ["FE", "S/FE", "S", "MBC/S", "MBC", "BC/MBC", "BC", "R", "UTG"];
-            // Se o estado vier vazio do Python, usa 'R' como padrão
             let estadoFinal = est ? est : "R";
             let optionsEstado = estados.map(e => `<option value="${e}" ${e === estadoFinal ? 'selected' : ''}>${e}</option>`).join('');
-            // ... resto do código
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><input type="checkbox" class="check-selecao"></td><td class="td-numero"></td>
@@ -263,9 +330,8 @@
         function renderizarTabela(cedulas) {
             const tbody = document.getElementById('corpo-tabela'); tbody.innerHTML = '';
             cedulas.forEach(c => {
-                // Passando c.quantidade e c.ano corretamente!
                 const tr = criarLinhaHTML(c.pais, c.descricao, c.ano, c.valor, c.estado, c.pick, c.quantidade);
-                tr.querySelector('.input-ref').value = c.codigo; // Preenche o Lote
+                tr.querySelector('.input-ref').value = c.codigo; 
                 tbody.appendChild(tr);
             });
             atualizarNumeracao(); recalcularTabela();
@@ -277,13 +343,12 @@
             tbody.closest('table').scrollTop = tbody.closest('table').scrollHeight;
         }
 
-        // --- SISTEMA DE EXCLUSÃO COM HISTÓRICO ---
+        // --- SISTEMA DE EXCLUSÃO ---
         function abrirModalExclusaoLinha(btn) {
             const linha = btn.closest('tr');
             document.getElementById('modal-mensagem').innerText = "Excluir esta cédula?";
             document.getElementById('modal-confirmacao').style.display = 'flex';
             document.getElementById('btn-confirmar-exclusao').onclick = () => {
-                // O SEGREDO: Clona o elemento com todos os valores digitados antes de apagar
                 const linhaClonada = linha.cloneNode(true);
                 historicoExclusao.push(linhaClonada); 
                 linha.remove(); 
@@ -299,8 +364,8 @@
             document.getElementById('btn-confirmar-exclusao').onclick = () => {
                 sel.forEach(cb => {
                     const linha = cb.closest('tr');
-                    const linhaClonada = linha.cloneNode(true); // Clona
-                    historicoExclusao.push(linhaClonada); // Salva
+                    const linhaClonada = linha.cloneNode(true); 
+                    historicoExclusao.push(linhaClonada); 
                     linha.remove();
                 });
                 atualizarNumeracao(); recalcularTabela(); fecharModal();
@@ -308,21 +373,11 @@
         }
 
         function desfazerExclusao() {
-            if (historicoExclusao.length === 0) {
-                alert("Não há exclusões recentes para desfazer.");
-                return;
-            }
+            if (historicoExclusao.length === 0) return alert("Não há exclusões recentes para desfazer.");
             const tbody = document.getElementById('corpo-tabela');
-            
-            // Pega o elemento que foi clonado
             const linhaRestaurada = historicoExclusao.pop();
-            
-            // Adiciona ele de volta na tabela
             tbody.appendChild(linhaRestaurada);
-            
-            // Força a atualização dos cálculos e da numeração
-            atualizarNumeracao(); 
-            recalcularTabela();
+            atualizarNumeracao(); recalcularTabela();
         }
 
         function atualizarNumeracao() { document.querySelectorAll('#corpo-tabela tr').forEach((l,i) => { const td = l.querySelector('.td-numero'); if(td) td.innerText = i+1; }); }
@@ -373,7 +428,6 @@
             let totalCedulasBruto = 0;
             const l = document.querySelectorAll('#corpo-tabela tr');
             
-            // 1. Soma os martelos (Martelo x Qtd)
             l.forEach(li => { 
                 const im = li.querySelector('.input-martelo'); 
                 const iq = li.querySelector('.input-qtd');
@@ -384,7 +438,6 @@
                 }
             });
 
-            // 2. Calcula os custos por linha
             l.forEach(li => {
                 const im = li.querySelector('.input-martelo'); 
                 const it = li.querySelector('.input-taxa');
@@ -396,16 +449,12 @@
                 const t = parseFloat(it.value) || 0;
                 const q = parseInt(iq.value) || 1;
                 
-                // CÁLCULO CORRIGIDO: 
-                // O Subtotal é o valor do martelo (vezes a quantidade) + a taxa sobre esse valor total
                 const valorBase = m * q;
                 const subtotal = valorBase + (valorBase * (t / 100));
-                
                 totalCedulasBruto += subtotal;
                 
                 let rateio = 0; 
                 if(somaMartelos > 0) {
-                    // O rateio agora usa a quantidade para dividir corretamente
                     rateio = ((m * q) / somaMartelos) * valorTotalFrete;
                 }
                 
@@ -416,7 +465,6 @@
                 li.querySelector('.td-custo-final').innerText = `R$ ${custoFinal.toFixed(2).replace('.',',')}`;
             });
 
-            // 3. Atualiza o Rodapé
             document.getElementById('total-cedulas').innerText = `R$ ${totalCedulasBruto.toFixed(2).replace('.',',')}`;
             document.getElementById('total-frete').innerText = `R$ ${valorTotalFrete.toFixed(2).replace('.',',')}`;
             const totalGeral = totalCedulasBruto + valorTotalFrete;
@@ -427,6 +475,9 @@
             const dInvs = document.querySelectorAll('.data-invalida');
             const vazias = Array.from(document.querySelectorAll('.input-data')).some(i => !i.value.trim());
             if (dInvs.length > 0 || vazias) return alert("Existem datas inválidas ou em branco.");
+
+            const confirmar = confirm("⚠️ Atenção: Você tem certeza que deseja salvar este lote?\n\nSe você já salvou este mesmo lote antes, os dados serão duplicados no banco.");
+            if (!confirmar) return;
 
             const linhas = document.querySelectorAll('#corpo-tabela tr'); const ceds = [];
             linhas.forEach(l => {
@@ -465,18 +516,70 @@
                 if (res.ok) { 
                     alert("✅ " + data.mensagem); 
                     document.getElementById('corpo-tabela').innerHTML = ''; 
-                    
-                    // LIMPA O NOME DO ARQUIVO APÓS SALVAR
                     const spanArquivo = document.getElementById('nome-arquivo-importado');
                     spanArquivo.innerText = "(Nenhum arquivo importado)";
                     spanArquivo.style.color = "#888";
-                    
                     recalcularTabela(); 
                 } else {
                     alert("❌ Erro: " + data.erro);
                 }
             } catch (e) { 
                 alert("Erro de comunicação."); 
+            }
+        }
+
+        // --- LÓGICA DO MODAL DE TEXTO ---
+        function abrirModalTexto() { document.getElementById('modal-texto').style.display = 'flex'; document.getElementById('texto-email').focus(); }
+        function fecharModalTexto() { document.getElementById('modal-texto').style.display = 'none'; document.getElementById('texto-email').value = ''; }
+
+        async function processarTexto() {
+            const texto = document.getElementById('texto-email').value;
+            if (!texto.trim()) return alert("Por favor, cole algum texto antes de processar.");
+
+            const btn = document.getElementById('btn-processar-texto');
+            const txtOriginal = btn.innerHTML;
+            btn.innerHTML = '⏳ Processando...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/processar_texto', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ texto: texto })
+                });
+                const data = await res.json();
+
+                if (res.ok && data.cedulas && data.cedulas.length > 0) {
+                    const temLinhas = document.getElementById('corpo-tabela').querySelectorAll('tr').length > 0;
+                    
+                    if (temLinhas) {
+                        dadosNovaImportacao = data.cedulas;
+                        tipoNovaImportacao = 'texto';
+                        nomeNovoArquivo = `Texto Importado (${data.cedulas.length} itens)`;
+                        abrirModalImportacao();
+                    } else {
+                        const tbody = document.getElementById('corpo-tabela');
+                        data.cedulas.forEach(c => {
+                            const tr = criarLinhaHTML(c.pais, c.descricao, c.ano, c.valor, c.estado, c.pick, c.quantidade);
+                            tr.querySelector('.input-ref').value = c.codigo;
+                            if (c.data) tr.querySelector('.input-data').value = c.data;
+                            tbody.appendChild(tr);
+                        });
+                        atualizarNumeracao(); recalcularTabela();
+                        
+                        const spanArquivo = document.getElementById('nome-arquivo-importado');
+                        spanArquivo.innerText = `📝 Texto Importado (${data.cedulas.length} itens)`;
+                        spanArquivo.style.color = "var(--gold-accent)";
+                    }
+                    fecharModalTexto();
+                } else {
+                    alert(data.erro || "Nenhuma cédula encontrada no texto.");
+                }
+            } catch (e) {
+                alert("Erro ao processar o texto.");
+            } finally {
+                btn.innerHTML = txtOriginal;
+                btn.disabled = false;
             }
         }
     </script>

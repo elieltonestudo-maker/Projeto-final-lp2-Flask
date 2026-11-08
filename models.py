@@ -31,27 +31,36 @@ class Lote(db.Model):
 
 class Cedula(db.Model):
     __tablename__ = 'cedulas'
+    
     id = db.Column(db.Integer, primary_key=True)
     lote_id = db.Column(db.Integer, db.ForeignKey('lotes.id'), nullable=False)
     
     pais = db.Column(db.String(100))
     valor_facial = db.Column(db.String(100))
-    ano = db.Column(db.String(10))
+    ano = db.Column(db.String(20))
     catalogo = db.Column(db.String(50))
     estado = db.Column(db.String(20))
     
+    # NOVOS CAMPOS
+    quantidade = db.Column(db.Integer, default=1)
+    data_compra = db.Column(db.String(20))
+    ref_lote = db.Column(db.String(50))
+    
     martelo = db.Column(db.Float, default=0.0)
     taxa_leilao = db.Column(db.Float, default=0.0)
-    
-    def __init__(self, lote_id, pais, valor_facial, ano, martelo, taxa_leilao=0.0, estado="FE", catalogo=""):
+
+    def __init__(self, lote_id, pais, valor_facial, ano, catalogo, estado, quantidade, data_compra, ref_lote, martelo, taxa_leilao=0.0):
         self.lote_id = lote_id
         self.pais = pais
         self.valor_facial = valor_facial
         self.ano = ano
+        self.catalogo = catalogo
+        self.estado = estado
+        self.quantidade = quantidade
+        self.data_compra = data_compra
+        self.ref_lote = ref_lote
         self.martelo = martelo
         self.taxa_leilao = taxa_leilao
-        self.estado = estado
-        self.catalogo = catalogo
 
     @property
     def subtotal(self):
