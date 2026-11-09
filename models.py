@@ -17,12 +17,13 @@ class Lote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     vendedor_id = db.Column(db.Integer, db.ForeignKey('vendedores.id'), nullable=False)
     tipo = db.Column(db.String(50))
-    origem = db.Column(db.String(50)) # <-- NOVA COLUNA
+    origem = db.Column(db.String(50)) # <-- NOVA COLUNA AQUI
     frete = db.Column(db.Float, default=0.0)
     custos_extras = db.Column(db.Float, default=0.0)
     data_cadastro = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # ... relacionamentos ...
+    vendedor = db.relationship('Vendedor', backref='lotes')
+    cedulas = db.relationship('Cedula', backref='lote', cascade="all, delete-orphan")
 
     def __init__(self, vendedor_id, tipo, origem, frete, custos_extras): # <-- Adicione origem aqui
         self.vendedor_id = vendedor_id
@@ -72,7 +73,7 @@ class Cedula(db.Model):
         if valor_total_lote == 0:
             return 0.0
         valor_frete_total = self.lote.frete + self.lote.custos_extras
-        return (self.martelo / valor_total_lote) * valor_frete_total
+        return ((self.martelo * self.quantidade) / valor_total_lote) * valor_frete_total
 
     def calcular_custo_final(self, valor_total_lote):
         return self.subtotal + self.calcular_rateio_frete(valor_total_lote)

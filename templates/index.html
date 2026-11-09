@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Sistema de Cédulas - Flask</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/js/mapa_bandeiras.js"></script>
     <style>
         :root { --bg-color: #121212; --panel-bg: #1e1e1e; --text-color: #e0e0e0; --gold-accent: #f1c40f; --border-color: #333; --input-bg: #2d2d2d; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; }
@@ -20,24 +22,16 @@
         input[type="text"], input[type="number"], select { background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 10px; border-radius: 5px; outline: none; transition: border 0.2s; }
         input:focus, select:focus { border-color: var(--gold-accent); }
         
-        /* BOTÕES GERAIS */
         .btn { background: var(--gold-accent); color: #000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.3s ease; }
         .btn:hover { transform: scale(1.02); box-shadow: 0 0 10px rgba(241, 196, 15, 0.5); opacity: 0.9; }
-
         .btn-outline { background: transparent; border: 1px solid var(--gold-accent); color: var(--gold-accent); }
         .btn-outline:hover { background: var(--gold-accent); color: #000; transform: scale(1.02); box-shadow: 0 0 10px rgba(241, 196, 15, 0.5); }
-
         .btn-danger { background: transparent; border: 1px solid #ff4d4d; color: #ff4d4d; }
         .btn-danger:hover { background: #ff4d4d; color: #fff; transform: scale(1.02); box-shadow: 0 0 10px rgba(255, 77, 77, 0.5); }
-
         .btn-undo { background: transparent; border: 1px solid #888; color: #888; }
         .btn-undo:hover { background: #888; color: #fff; transform: scale(1.02); box-shadow: 0 0 10px rgba(136, 136, 136, 0.5); }
-
-        /* BOTÃO ADICIONAR (+) */
         .btn-add-linha { position: absolute; bottom: 20px; left: 20px; background: var(--panel-bg); color: var(--gold-accent); border: 2px solid var(--gold-accent); border-radius: 50%; width: 40px; height: 40px; font-size: 24px; cursor: pointer; transition: all 0.3s; z-index: 10; display: flex; align-items: center; justify-content: center; }
         .btn-add-linha:hover { background: var(--gold-accent); color: #000; transform: scale(1.1); box-shadow: 0 0 15px rgba(241, 196, 15, 0.6); }
-
-        /* BOTÃO EXCLUIR LINHA (X) */
         .btn-del-linha { background: none; border: none; color: #ff4d4d; font-size: 16px; cursor: pointer; transition: all 0.2s ease; }
         .btn-del-linha:hover { color: #ff0000; transform: scale(1.3); text-shadow: 0 0 8px rgba(255, 0, 0, 0.6); }
 
@@ -51,7 +45,6 @@
         .money-symbol { color: #888; font-weight: bold; font-size: 12px; }
         .money-input-container input { border: none !important; background: transparent !important; padding-left: 5px; width: 70px; }
         
-        /* RODAPÉ DE TOTAIS */
         .totais-rodape { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px; background: #2a2a2a; border-radius: 8px; border-left: 4px solid var(--gold-accent); box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .totais-info { display: flex; gap: 30px; font-size: 15px; }
         .totais-info span { color: var(--gold-accent); font-weight: bold; }
@@ -119,6 +112,21 @@
         </div>
     </div>
 
+    <!-- MODAL DE CADASTRAR NOVO VENDEDOR -->
+    <div class="modal-overlay" id="modal-novo-vendedor">
+        <div class="modal-box" style="max-width: 450px;">
+            <h3 style="color: var(--gold-accent); margin-top: 0;">👤 Novo Vendedor</h3>
+            <p style="font-size: 14px; color: #aaa; margin-bottom: 15px;">Digite o nome do novo vendedor para cadastrá-lo no banco:</p>
+            
+            <input type="text" id="input-novo-vendedor" placeholder="Ex: Rivaldo Dantas Leilões" style="width: 100%; padding: 12px; font-size: 14px; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 5px; outline: none;">
+            
+            <div class="modal-actions" style="justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="fecharModalNovoVendedor()">Cancelar</button>
+                <button class="btn" onclick="salvarNovoVendedor()">Cadastrar Vendedor</button>
+            </div>
+        </div>
+    </div>
+
     <div class="header">Aquisições</div>
 
     <div class="tabs-container">
@@ -131,7 +139,6 @@
             <h3 class="panel-title">ℹ️ INFORMAÇÕES DO LOTE</h3>
             <div class="input-group">
                 
-                <!-- ORIGEM NO LUGAR DO TIPO -->
                 <label>Origem:</label>
                 <select id="tipo-lote" onchange="atualizarTaxaGlobal()" style="width: 170px;">
                     <option value="Leilão Oficial">🏛️ Leilão Oficial</option>
@@ -157,7 +164,6 @@
             </div>
         </div>
         <div class="panel" style="padding-bottom: 80px;">
-            <!-- TÍTULO E NOME DO ARQUIVO LADO A LADO -->
             <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
                 <h3 class="panel-title" style="margin-bottom: 0;">📋 CÉDULAS DO LOTE</h3>
                 <span id="nome-arquivo-importado" style="font-size: 12px; color: #888; font-style: italic;">
@@ -165,7 +171,6 @@
                 </span>
             </div>
             
-            <!-- BARRA DE AÇÕES EM MASSA -->
             <div class="input-group" style="justify-content: space-between; margin-bottom: 15px; padding: 10px; background: #2a2a2a; border-radius: 5px;">
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                     <label style="color: var(--gold-accent); font-weight: bold;">Ações em Massa:</label>
@@ -199,7 +204,6 @@
             </table>
             <button class="btn-add-linha" onclick="adicionarLinhaVazia()" title="Adicionar cédula">+</button>
 
-            <!-- RODAPÉ DE TOTAIS -->
             <div class="totais-rodape">
                 <div class="totais-info">
                     <div>Total Cédulas: <span id="total-cedulas">R$ 0,00</span></div>
@@ -217,18 +221,150 @@
         </div>
     </div>
 
+    <!-- ABA PESQUISAR -->
     <div id="tab-pesquisar" class="tab-content">
-        <div class="panel"><h3 class="panel-title">Pesquisa (Em breve)</h3></div>
-    </div>
+        
+        <!-- Painel de Busca -->
+        <div class="panel" style="padding-bottom: 20px;">
+            <div class="input-group" style="margin-bottom: 0;">
+                <label>Buscar:</label>
+                <input type="text" id="input-busca" placeholder="Filtre por país, vendedor ou descrição..." style="width: 400px;" oninput="filtrarPesquisa()">
+            </div>
+        </div> <!-- FECHA O PAINEL DE BUSCA -->
 
-    <!-- O JavaScript vem na Parte 2 -->
+        <!-- MUDANÇA AQUI: Layout em coluna única -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            
+            <!-- Lista de Cédulas -->
+            <div class="panel" style="max-height: 400px; overflow-y: auto;">
+                <h3 class="panel-title">Cédulas Encontradas (<span id="contador-pesquisa">0</span>)</h3>
+                <div id="lista-pesquisa" style="display: flex; flex-direction: column; gap: 10px;">
+                    <p style="color: #888; text-align: center;">Carregando dados do banco...</p>
+                </div>
+            </div> <!-- FECHA O PAINEL DA LISTA -->
+
+            <!-- Gráfico em Largura Total -->
+            <div class="panel" style="display: flex; flex-direction: column; text-align: center; width: 100%; max-width: 900px; margin: 0 auto;">
+                <h3 class="panel-title" style="margin-bottom: 15px;">📊 Aquisições por País</h3>
+                <!-- Aumentamos a altura para caber os países (ele cresce conforme a necessidade) -->
+                <div id="container-grafico" style="width: 100%; height: 500px; position: relative;">
+                    <canvas id="grafico-paises"></canvas>
+                </div>
+            </div> <!-- FECHA O PAINEL DO GRÁFICO -->
+
+        </div> <!-- FECHA A DIV DO FLEX COLUMN -->
+
+    </div> <!-- 👈 FECHA A DIV DA ABA PESQUISAR (tab-pesquisar) -->
+
     <script>
         let historicoExclusao = []; 
         let dadosNovaImportacao = null; 
         let tipoNovaImportacao = "";    
         let nomeNovoArquivo = "";       
-        // --- LÓGICA DO DROPDOWN DE VENDEDORES ---
-        let listaVendedores = ["Rivaldo Dantas", "Pariz Moedas", "Filatélica Brasil", "Tenor e Pellizzari", "Numismática Brasil Leilões"]; 
+        let listaCompletaPesquisa = []; 
+
+                // --- CATÁLOGO DE PAÍSES ---
+        const CATALOGO_PAISES = {
+            "África": {
+                "África do Sul": "za", "Angola": "ao", "Argélia": "dz", "Botsuana": "bw", "Burundi": "bi",
+                "Cabo Verde": "cv", "Comores": "km", "Congo": "cg", "Djibuti": "dj", "Egito": "eg",
+                "Eritreia": "er", "Etiópia": "et", "Gabão": "ga", "Gâmbia": "gm", "Gana": "gh",
+                "Guiné": "gn", "Guiné Equatorial": "gq", "Ilhas Maurício": "mu", "Ilhas Reunião": "re",
+                "Reunião": "re", "Lesoto": "ls", "Libéria": "lr", "Líbia": "ly", "Madagascar": "mg",
+                "Malaui": "mw", "Marrocos": "ma", "Mauritânia": "mr", "Moçambique": "mz", "Namíbia": "na",
+                "Nigéria": "ng", "Quênia": "ke", "Ruanda": "rw", "São Tomé e Príncipe": "st", "Seicheles": "sc",
+                "Serra Leoa": "sl", "Somália": "so", "Sta Helena": "sh", "Sudão": "sd", "Suazilândia": "sz",
+                "Tanzânia": "tz", "Tunísia": "tn", "Uganda": "ug", "Zâmbia": "zm", "Zimbábue": "zw"
+            },
+            "América": {
+                "Antígua & Barbuda": "ag", "Argentina": "ar", "Aruba": "aw", "Bahamas": "bs", "Barbados": "bb",
+                "Belize": "bz", "Bermuda": "bm", "Bolívia": "bo", "Canadá": "ca", "Chile": "cl",
+                "Colômbia": "co", "Costa Rica": "cr", "Cuba": "cu", "El Salvador": "sv", "Equador": "ec",
+                "Estados Unidos": "us", "Guatemala": "gt", "Guiana": "gy", "Haiti": "ht", "Honduras": "hn",
+                "Ilhas Cayman": "ky", "Ilhas Malvinas": "fk", "Jamaica": "jm", "México": "mx",
+                "Nicarágua": "ni", "Paraguai": "py", "Peru": "pe", "República Dominicana": "do",
+                "Suriname": "sr", "Trinidad & Tobago": "tt", "Uruguai": "uy", "Venezuela": "ve"
+            },
+            "Ásia": {
+                "Afeganistão": "af", "Arábia Saudita": "sa", "Armênia": "am", "Azerbaijão": "az",
+                "Bangladesh": "bd", "Barein": "bh", "Brunei": "bn", "Butão": "bt",
+                "Camboja": "kh", "Catar": "qa", "Cazaquistão": "kz", "China": "cn",
+                "Cingapura": "sg", "Singapura": "sg", "Coréia do Norte": "kp", "Coreia do Norte": "kp",
+                "Coréia do Sul": "kr", "Coreia do Sul": "kr", "Filipinas": "ph", "Hejaz": "sa",
+                "Hong Kong": "hk", "Iêmen": "ye", "Ilhas Maldivas": "mv", "Maldívias": "mv", "Índia": "in",
+                "Indochina Francesa": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Flag_of_French_Indochina.svg/40px-Flag_of_French_Indochina.svg.png",
+                "Indonésia": "id", "Irã": "ir", "Iraque": "iq", "Israel": "il", "Japão": "jp",
+                "Jordânia": "jo", "Kuwait": "kw", "Laos": "la", "Líbano": "lb", "Macau": "mo",
+                "Malásia": "my", "Malaya": "my", "Mongólia": "mn", "Myanmar": "mm", "Nepal": "np",
+                "Omã": "om", "Paquistão": "pk", "Quirguistão": "kg", "Rússia": "ru", "Síria": "sy",
+                "Sri Lanka": "lk", "Taiwan": "tw", "Tajiquistão": "tj",
+                "Tannu Tuva": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Flag_of_Tannu_Tuva_%281921-1921%29.svg/40px-Flag_of_Tannu_Tuva_%281921-1921%29.svg.png",
+                "Tartaristão": "ru", "Tailândia": "th", "Timor": "tl", "Timor-Leste": "tl",
+                "Turcomenistão": "tm", "Turquia": "tr", "UAE Emirados Árabes Unidos": "ae",
+                "Emirados Árabes Unidos": "ae", "Uzbequistão": "uz", "Vietnã": "vn",
+                "Vietnã do Sul": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Flag_of_South_Vietnam.svg/40px-Flag_of_South_Vietnam.svg.png"
+            },
+            "Europa": {
+                "Liechtenstein": "li", "Albânia": "al", "Áustria": "at", "Bielorrússia": "by",
+                "Bélgica": "be", 
+                "Bohemia & Moravia": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Flag_of_Bohemia_and_Moravia.svg/40px-Flag_of_Bohemia_and_Moravia.svg.png",
+                "Bósnia e Herzegovina": "ba", "Bulgária": "bg", "Croácia": "hr", "Chipre": "cy",
+                "República Tcheca": "cz", "Tchecoslováquia": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Flag_of_Czechoslovakia.svg/40px-Flag_of_Czechoslovakia.svg.png",
+                "Dinamarca": "dk", "Estônia": "ee", "União Européia": "eu", "Ilhas Faroé": "fo",
+                "Finlândia": "fi", "França": "fr", "Geórgia": "ge", "Alemanha": "de",
+                "Gibraltar": "gi", "Inglaterra": "gb-eng", "Grécia": "gr", "Guernsey": "gg",
+                "Hungria": "hu", "Islândia": "is", "Irlanda": "ie", "Ilha do Homem": "im",
+                "Itália": "it", "Ilhas Jersey": "je", "Katangas": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Flag_of_Katanga.svg/40px-Flag_of_Katanga.svg.png",
+                "Letônia": "lv", "Lituânia": "lt", "Luxemburgo": "lu", "Macedônia do Norte": "mk",
+                "Malta": "mt", 
+                "Memel": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Flag_of_Memel.svg/40px-Flag_of_Memel.svg.png", 
+                "Moldávia": "md", 
+                "Nagorno Karabagh": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Flag_of_Artsakh.svg/40px-Flag_of_Artsakh.svg.png",
+                "Holanda": "nl", "Noruega": "no", "Polônia": "pl", "Portugal": "pt", "Romênia": "ro",
+                "Escócia": "gb-sct", "Sérvia": "rs", "Eslováquia": "sk", "Eslovênia": "si",
+                "Espanha": "es", "Suécia": "se", "Suíça": "ch", "Transnistria": "md",
+                "Ucrânia": "ua", 
+                "Iugoslávia": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/Flag_of_Yugoslavia_%281918%E2%80%931941%29.svg/40px-Flag_of_Yugoslavia_%281918%E2%80%931941%29.svg.png"
+            },
+            "Oceania": {
+                "Austrália": "au", "Hutt River": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/Flag_of_the_Principality_of_Hutt_River.svg/40px-Flag_of_the_Principality_of_Hutt_River.svg.png",
+                "Ilhas Chatham": "nz", "Ilhas Cook": "ck", "Ilhas Fiji": "fj", "Kamberra": "au",
+                "Kerguelen": "fr", "Ilhas Salomão": "sb", "Nova Zelândia": "nz",
+                "Novas Hébridas": "vu", "Oceania": "un", // "Oceania" genérico usa a ONU
+                "Papua Nova Guiné": "pg", "Samoa": "ws", "Tahiti": "pf", "Territórios Franceses no Pacífico": "pf",
+                "Tonga": "to", "Vanuatu": "vu"
+            }   
+
+        };
+
+        // Função rápida para pegar a sigla do país (não pesa no gráfico)
+        function getSiglaPais(nome) {
+            if (!nome) return "un";
+            const nomeLimpo = nome.trim().toLowerCase();
+            for (let continente in CATALOGO_PAISES) {
+                for (let pais in CATALOGO_PAISES[continente]) {
+                    if (pais.toLowerCase() === nomeLimpo) {
+                        return CATALOGO_PAISES[continente][pais];
+                    }
+                }
+            }
+            return "un"; // Bandeira da ONU
+        }
+
+        // --- LÓGICA DO DROPDOWN DE VENDEDORES (BUSCA NO BANCO) ---
+
+        // --- LÓGICA DO DROPDOWN DE VENDEDORES (BUSCA NO BANCO) ---
+        let listaVendedores = []; 
+
+        async function carregarVendedoresDoBanco() {
+            try {
+                const res = await fetch('/api/vendedores');
+                const data = await res.json();
+                if (data.vendedores) {
+                    listaVendedores = data.vendedores.map(v => v.nome);
+                }
+            } catch (e) { console.error("Erro ao buscar vendedores:", e); }
+        }
 
         function mostrarDropdownVendedores() {
             const dropdown = document.getElementById('dropdown-vendedores');
@@ -272,7 +408,6 @@
                 dropdown.appendChild(item);
             });
 
-            // Opção de adicionar novo vendedor
             const itemNovo = document.createElement('div');
             itemNovo.style.padding = "10px";
             itemNovo.style.cursor = "pointer";
@@ -281,18 +416,14 @@
             itemNovo.innerText = "+ Cadastrar novo vendedor...";
             
             itemNovo.onclick = () => {
-                const novoNome = prompt("Digite o nome do novo vendedor:");
-                if (novoNome && novoNome.trim() !== "") {
-                    listaVendedores.push(novoNome.trim()); 
-                    document.getElementById('vendedor-lote').value = novoNome.trim();
-                    dropdown.style.display = 'none';
-                    mostrarAlerta("✅ Sucesso", `Vendedor "${novoNome}" cadastrado!`, "sucesso");
-                }
+                document.getElementById('dropdown-vendedores').style.display = 'none';
+                document.getElementById('input-novo-vendedor').value = ''; 
+                document.getElementById('modal-novo-vendedor').style.display = 'flex';
+                document.getElementById('input-novo-vendedor').focus();
             };
             dropdown.appendChild(itemNovo);
         }
 
-        // Fecha o dropdown se clicar fora dele
         document.addEventListener('click', function(event) {
             const dropdown = document.getElementById('dropdown-vendedores');
             const input = document.getElementById('vendedor-lote');
@@ -301,10 +432,8 @@
             }
         });
 
-
         function fecharModal() { document.getElementById('modal-confirmacao').style.display = 'none'; }
 
-        // --- LÓGICA DO MODAL DE IMPORTAÇÃO ---
         function abrirModalImportacao() { document.getElementById('modal-importacao').style.display = 'flex'; }
         function fecharModalImportacao() {
             document.getElementById('modal-importacao').style.display = 'none';
@@ -332,7 +461,6 @@
             fecharModalImportacao();
         }
 
-        // --- MÁSCARA DE DATA ---
         function aplicarMascaraData(input) {
             let valor = input.value.replace(/\D/g, ''); if (valor.length > 8) valor = valor.slice(0, 8);
             if (valor.length === 0) { input.value = ""; input.classList.remove('data-invalida'); return; }
@@ -354,7 +482,7 @@
             };
         }
 
-        // --- SISTEMA DE ALERTAS CUSTOMIZADOS ---
+        // --- SISTEMA DE ALERTAS CUSTOMIZADOS (MAIS ATRAENTE) ---
         function mostrarAlerta(titulo, mensagem, tipo = 'aviso') {
             const modal = document.getElementById('modal-alerta');
             const txtTitulo = document.getElementById('alerta-titulo');
@@ -383,9 +511,10 @@
             txtTitulo.style.color = 'var(--gold-accent)';
             txtMsg.innerText = mensagem;
             
+            // AQUI ESTÁ A MUDANÇA: Botão Verde ao invés de Vermelho
             containerBotoes.innerHTML = `
                 <button class="btn btn-outline" onclick="fecharAlerta()">Cancelar</button>
-                <button class="btn btn-danger" id="btn-sim-alerta">Sim, Continuar</button>
+                <button class="btn" style="background-color: #28a745; color: #fff;" id="btn-sim-alerta">Sim, Continuar</button>
             `;
             
             document.getElementById('btn-sim-alerta').onclick = () => {
@@ -400,12 +529,17 @@
             document.getElementById('modal-alerta').style.display = 'none';
         }
               
-
         function switchTab(t) {
             document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            if(t==='registrar'){ document.querySelectorAll('.tab')[0].classList.add('active'); document.getElementById('tab-registrar').classList.add('active'); }
-            else { document.querySelectorAll('.tab')[1].classList.add('active'); document.getElementById('tab-pesquisar').classList.add('active'); }
+            if(t==='registrar'){ 
+                document.querySelectorAll('.tab')[0].classList.add('active'); 
+                document.getElementById('tab-registrar').classList.add('active'); 
+            } else { 
+                document.querySelectorAll('.tab')[1].classList.add('active'); 
+                document.getElementById('tab-pesquisar').classList.add('active'); 
+                carregarDadosPesquisa(); 
+            }
         }
 
         document.getElementById('check-extras').addEventListener('change', function() {
@@ -414,7 +548,6 @@
             recalcularTabela();
         });
 
-        // --- IMPORTAÇÃO DE PDF ---
         async function processarArquivo(form) {
             const btn = form.querySelector('button'); const txt = btn.innerHTML; btn.innerHTML = '⏳...';
             const fileInput = form.querySelector('input[type="file"]');
@@ -494,7 +627,6 @@
             tbody.closest('table').scrollTop = tbody.closest('table').scrollHeight;
         }
 
-        // --- SISTEMA DE EXCLUSÃO ---
         function abrirModalExclusaoLinha(btn) {
             const linha = btn.closest('tr');
             document.getElementById('modal-mensagem').innerText = "Excluir esta cédula?";
@@ -622,40 +754,30 @@
             document.getElementById('total-geral').innerText = `R$ ${totalGeral.toFixed(2).replace('.',',')}`;
         }
 
-        // --- FUNÇÃO PARA LIMPAR TUDO ---
         function limparTudo() {
             mostrarConfirmacao(
                 "⚠️ Cancelar Cadastro", 
                 "Tem certeza que deseja cancelar este cadastro? Todos os dados da tabela, o vendedor e o frete serão apagados.",
                 () => {
-                    // Limpa a tabela
                     document.getElementById('corpo-tabela').innerHTML = '';
-                    
-                    // Limpa os campos do lote
                     document.getElementById('vendedor-lote').value = '';
                     document.getElementById('frete-lote').value = '';
                     document.getElementById('check-extras').checked = false;
                     document.getElementById('container-extras').style.display = 'none';
                     document.getElementById('input-extras').value = '';
-                    
-                    // Reseta o tipo
                     document.getElementById('tipo-lote').value = 'Leilão Oficial';
                     atualizarTaxaGlobal();
                     
-                    // Limpa o nome do arquivo
                     const spanArquivo = document.getElementById('nome-arquivo-importado');
                     spanArquivo.innerText = "(Nenhum arquivo importado)";
                     spanArquivo.style.color = "#888";
                     
-                    // Limpa os campos de ação em massa
                     document.getElementById('massa-data').value = '';
                     document.getElementById('massa-ref').value = '';
                     document.getElementById('massa-estado').value = '';
                     
                     recalcularTabela();
                     historicoExclusao = [];
-                    
-                    // Mostra o alerta de sucesso
                     mostrarAlerta("✅ Tela Limpa", "Pronto para um novo cadastro!", "sucesso");
                 }
             );
@@ -667,7 +789,6 @@
             if (dInvs.length > 0 || vazias) return mostrarAlerta("❌ Erro", "Existem datas inválidas ou em branco.", "erro");
 
             mostrarConfirmacao("⚠️ Salvar Lote", "Você tem certeza que deseja salvar este lote?\nSe já salvou antes, os dados serão duplicados.", async () => {
-                // O código de salvar (linhas.forEach, fetch, etc) entra AQUI DENTRO
                 const linhas = document.querySelectorAll('#corpo-tabela tr'); const ceds = [];
                 linhas.forEach(l => {
                     const im = l.querySelector('.input-martelo'); 
@@ -695,7 +816,7 @@
                         body: JSON.stringify({
                             vendedor: document.getElementById('vendedor-lote').value || "Sem nome", 
                             tipo: document.getElementById('tipo-lote').value,
-                            origem: document.getElementById('tipo-lote').value, // <-- Corrigido
+                            origem: document.getElementById('tipo-lote').value, 
                             frete: parseFloat(document.getElementById('frete-lote').value)||0,
                             custos_extras: document.getElementById('check-extras').checked ? (parseFloat(document.getElementById('input-extras').value)||0) : 0,
                             cedulas: ceds
@@ -705,10 +826,27 @@
                     
                     if (res.ok) { 
                         mostrarAlerta("✅ Sucesso", data.mensagem, "sucesso"); 
+                        
                         document.getElementById('corpo-tabela').innerHTML = ''; 
+                        
                         const spanArquivo = document.getElementById('nome-arquivo-importado');
                         spanArquivo.innerText = "(Nenhum arquivo importado)";
                         spanArquivo.style.color = "#888";
+                        
+                        document.getElementById('vendedor-lote').value = '';
+                        document.getElementById('frete-lote').value = '';
+                        
+                        document.getElementById('check-extras').checked = false;
+                        document.getElementById('container-extras').style.display = 'none';
+                        document.getElementById('input-extras').value = '';
+                        
+                        document.getElementById('tipo-lote').value = 'Leilão Oficial';
+                        atualizarTaxaGlobal();
+
+                        document.getElementById('massa-data').value = '';
+                        document.getElementById('massa-ref').value = '';
+                        document.getElementById('massa-estado').value = '';
+                        
                         recalcularTabela(); 
                     } else {
                         mostrarAlerta("❌ Erro no Servidor", data.erro, "erro");
@@ -718,7 +856,7 @@
                 }
             });
         }
-        // --- LÓGICA DO MODAL DE TEXTO ---
+
         function abrirModalTexto() { document.getElementById('modal-texto').style.display = 'flex'; document.getElementById('texto-email').focus(); }
         function fecharModalTexto() { document.getElementById('modal-texto').style.display = 'none'; document.getElementById('texto-email').value = ''; }
 
@@ -772,6 +910,343 @@
                 btn.disabled = false;
             }
         }
+
+        async function carregarDadosPesquisa() {
+            try {
+                const res = await fetch('/api/pesquisar');
+                const data = await res.json();
+                
+                if (data.cedulas) {
+                    listaCompletaPesquisa = data.cedulas;
+                    renderizarListaPesquisa(listaCompletaPesquisa);
+                } else {
+                    document.getElementById('lista-pesquisa').innerHTML = '<p style="color: #ff4d4d;">Erro ao carregar dados.</p>';
+                }
+            } catch (e) {
+                console.error('Erro ao buscar dados:', e);
+            }
+        }
+
+        function renderizarListaPesquisa(cedulas) {
+            const container = document.getElementById('lista-pesquisa');
+            const contador = document.getElementById('contador-pesquisa');
+            
+            container.innerHTML = '';
+            contador.innerText = cedulas.length;
+
+            if (cedulas.length === 0) {
+                container.innerHTML = '<p style="color: #888; text-align: center;">Nenhuma cédula encontrada.</p>';
+                return;
+            }
+
+            cedulas.forEach(c => {
+                const valorFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.custo_final);
+                
+                const card = document.createElement('div');
+                card.style.background = '#2a2a2a';
+                card.style.borderRadius = '8px';
+                card.style.padding = '15px';
+                card.style.borderLeft = '4px solid var(--gold-accent)';
+                card.style.display = 'flex';
+                card.style.justifyContent = 'space-between';
+                card.style.alignItems = 'center';
+
+                // ADICIONAMOS O BOTÃO DE EXCLUIR AQUI
+                card.innerHTML = `
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; font-size: 14px; color: #fff;">
+                            ${c.pais} - ${c.descricao} ${c.catalogo ? '- ' + c.catalogo : ''}
+                        </div>
+                        <div style="font-size: 11px; color: #888; margin-top: 5px;">
+                            📅 ${c.data || 'Sem data'} | 🏷️ Lote: ${c.ref_lote || '-'} | 👤 ${c.vendedor} | 📦 ${c.origem}
+                        </div>
+                    </div>
+                    <div style="text-align: right; margin-right: 15px;">
+                        <div style="font-size: 11px; color: #888; margin-bottom: 3px;">Custo Final (com Frete)</div>
+                        <div style="font-weight: bold; font-size: 16px; color: var(--gold-accent);">${valorFormatado}</div>
+                        <div style="font-size: 10px; color: #aaa;">Estado: ${c.estado} | Qtd: ${c.quantidade}</div>
+                        <div style="font-size: 9px; color: #666; margin-top: 2px;">Base: R$ ${c.custo_base.toFixed(2)} | Frete: R$ ${c.rateio.toFixed(2)}</div>
+                    </div>
+                    <div>
+                        <button class="btn btn-danger" style="padding: 8px; font-size: 12px;" onclick="excluirLote(${c.lote_id})">🗑️ Excluir Lote</button>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+            atualizarGrafico(cedulas);       
+        }
+
+        let meuGrafico = null;
+
+        // Mapeamento de nomes em português para códigos ISO de 2 letras (para buscar a bandeira)
+        const MAPA_BANDEIRAS = {
+            "Brasil": "br", "Estados Unidos": "us", "Reino Unido": "gb", "Alemanha": "de",
+            "França": "fr", "Itália": "it", "Japão": "jp", "China": "cn", "Argentina": "ar",
+            "Portugal": "pt", "Espanha": "es", "México": "mx", "Canadá": "ca", "Rússia": "ru",
+            "Índia": "in", "Austrália": "au", "África do Sul": "za", "Egito": "eg", "Nigéria": "ng",
+            "Quênia": "ke", "Uganda": "ug", "Líbia": "ly", "Noruega": "no", "Suécia": "se",
+            "Suíça": "ch", "Áustria": "at", "Bélgica": "be", "Holanda": "nl", "Polônia": "pl",
+            "Hungria": "hu", "Romênia": "ro", "Bulgária": "bg", "Grécia": "gr", "Turquia": "tr",
+            "Coreia do Sul": "kr", "Coreia do Norte": "kp", "Indonésia": "id", "Malásia": "my",
+            "Filipinas": "ph", "Tailândia": "th", "Vietnã": "vn", "Singapura": "sg", "Nova Zelândia": "nz",
+            "Chile": "cl", "Colômbia": "co", "Peru": "pe", "Venezuela": "ve", "Uruguai": "uy",
+            "Paraguai": "py", "Bolívia": "bo", "Equador": "ec", "Costa Rica": "cr", "Cuba": "cu",
+            "Guatemala": "gt", "Honduras": "hn", "El Salvador": "sv", "Nicarágua": "ni", "Panamá": "pa",
+            "República Dominicana": "do", "Haiti": "ht", "Jamaica": "jm", "Afeganistão": "af",
+            "Paquistão": "pk", "Bangladesh": "bd", "Sri Lanka": "lk", "Nepal": "np", "Butão": "bt",
+            "Mianmar": "mm", "Camboja": "kh", "Laos": "la", "Mongólia": "mn", "Cazaquistão": "kz",
+            "Uzbequistão": "uz", "Turcomenistão": "tm", "Tajiquistão": "tj", "Quirguistão": "kg",
+            "Azerbaijão": "az", "Armênia": "am", "Geórgia": "ge", "Ucrânia": "ua", "Bielorrússia": "by",
+            "Lituânia": "lt", "Letônia": "lv", "Estônia": "ee", "Finlândia": "fi", "Dinamarca": "dk",
+            "Irlanda": "ie", "Islândia": "is", "Israel": "il", "Arábia Saudita": "sa", "Emirados Árabes Unidos": "ae",
+            "Catar": "qa", "Kuwait": "kw", "Bahrein": "bh", "Omã": "om", "Iêmen": "ye", "Jordânia": "jo",
+            "Líbano": "lb", "Síria": "sy", "Iraque": "iq", "Irã": "ir", "Chipre": "cy", "Malta": "mt",
+            "Ilhas Salomão": "sb", "Papua Nova Guiné": "pg", "Fiji": "fj", "Samoa": "ws", "Tonga": "to",
+            "Vanuatu": "vu", "Micronésia": "fm", "Palau": "pw", "Marshall": "mh", "Nauru": "nr",
+            "Kiribati": "ki", "Tuvalu": "tv", "Transnistria": "md", "Tchecoslováquia": "cz",
+            "Iugoslávia": "rs", "Sérvia": "rs", "Croácia": "hr", "Eslovênia": "si", "Bósnia": "ba",
+            "Macedônia": "mk", "Montenegro": "me", "Kosovo": "xk", "Albânia": "al", "Eslováquia": "sk",
+            "Chéquia": "cz", "República Tcheca": "cz", "Angola": "ao", "Moçambique": "mz",
+            "Cabo Verde": "cv", "Guiné-Bissau": "gw", "São Tomé e Príncipe": "st", "Timor-Leste": "tl",
+            "Serra Leoa": "sl", "Libéria": "lr", "Costa do Marfim": "ci", "Gana": "gh", "Togo": "tg",
+            "Benin": "bj", "Camarões": "cm", "República Centro-Africana": "cf", "Chade": "td",
+            "Congo": "cg", "República Democrática do Congo": "cd", "Gabão": "ga", "Guiné Equatorial": "gq",
+            "Ruanda": "rw", "Burundi": "bi", "Etiópia": "et", "Eritreia": "er", "Djibuti": "dj",
+            "Somália": "so", "Sudão": "sd", "Sudão do Sul": "ss", "Tanzânia": "tz", "Malaui": "mw",
+            "Zâmbia": "zm", "Zimbábue": "zw", "Botsuana": "bw", "Namíbia": "na", "Lesoto": "ls",
+            "Essuatíni": "sz", "Madagascar": "mg", "Maurício": "mu", "Seicheles": "sc", "Comores": "km",
+            "Mauritânia": "mr", "Mali": "ml", "Níger": "ne", "Burkina Faso": "bf", "Senegal": "sn",
+            "Gâmbia": "gm", "Guiné": "gn", "Argélia": "dz", "Marrocos": "ma", "Tunísia": "tn"
+        };
+
+        function obterCodigoBandeira(nomePais) {
+            if (!nomePais) return "https://flagcdn.com/w40/un.png";
+            
+            // 1. Normaliza o nome (remove acentos, deixa minúsculo e tira espaços/underlines)
+            const normalizar = (texto) => {
+                return texto.trim()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, "") // Remove acentos
+                    .replace(/[\s_-]+/g, '') // Remove espaços, underlines e hifens
+                    .toLowerCase();
+            };
+            
+            const nomeNormalizado = normalizar(nomePais);
+
+            // 2. Busca no mapa que o Python gerou, comparando os nomes normalizados
+            if (typeof MAPA_BANDEIRAS_LOCAIS !== 'undefined') {
+                for (let chave in MAPA_BANDEIRAS_LOCAIS) {
+                    if (normalizar(chave) === nomeNormalizado) {
+                        return `/static/img/flags/${MAPA_BANDEIRAS_LOCAIS[chave]}`;
+                    }
+                }
+            }
+
+            // 3. Fallback: Se não achou na pasta, busca no CATALOGO_PAISES (internet)
+            if (typeof CATALOGO_PAISES !== 'undefined') {
+                for (let continente in CATALOGO_PAISES) {
+                    const paisesDoContinente = CATALOGO_PAISES[continente];
+                    for (let nomePaisCat in paisesDoContinente) {
+                        if (normalizar(nomePaisCat) === nomeNormalizado) {
+                            return `https://flagcdn.com/w40/${paisesDoContinente[nomePaisCat]}.png`;
+                        }
+                    }
+                }
+            }
+
+            // 4. Fallback Final: Bandeira da ONU
+            return "https://flagcdn.com/w40/un.png";
+        }
+
+        // --- CACHE DE BANDEIRAS (Para não sumirem ao rolar) ---
+        const cacheBandeiras = {};
+
+        const pluginBandeiras = {
+            id: 'bandeiras',
+            beforeDatasetsDraw(chart) {
+                // Pré-carrega todas as imagens de uma vez para a memória do navegador
+                chart.data.labels.forEach(pais => {
+                    if (!cacheBandeiras[pais]) {
+                        const url = obterCodigoBandeira(pais);
+                        const img = new Image();
+                        img.src = url;
+                        cacheBandeiras[pais] = img;
+                    }
+                });
+            },
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                chart.data.datasets.forEach((dataset, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    meta.data.forEach((bar, index) => {
+                        const pais = chart.data.labels[index];
+                        const img = cacheBandeiras[pais];
+                        
+                        // Só desenha se a imagem já estiver pronta na memória
+                        if (img && img.complete && img.naturalHeight !== 0) {
+                            ctx.drawImage(img, 10, bar.y - 10, 30, 20);
+                        }
+                    });
+                });
+            }
+        };
+
+        function atualizarGrafico(cedulas) {
+            const dadosPorPais = {};
+            
+            // 1. Agrupa os dados: Quantidade e Custo Total por País
+            cedulas.forEach(c => {
+                if (!dadosPorPais[c.pais]) {
+                    dadosPorPais[c.pais] = { custo: 0, quantidade: 0 };
+                }
+                dadosPorPais[c.pais].custo += c.custo_final;
+                // Se o seu backend retorna a 'quantidade', use-a. Senão, conte 1 por linha.
+                dadosPorPais[c.pais].quantidade += (c.quantidade || 1); 
+            });
+
+            // 2. Transforma em array e ordena pelo maior custo
+            const paisesOrdenados = Object.keys(dadosPorPais).sort((a, b) => {
+                return dadosPorPais[b].custo - dadosPorPais[a].custo;
+            });
+
+            const labels = paisesOrdenados;
+            const valoresCusto = paisesOrdenados.map(p => dadosPorPais[p].custo);
+            const valoresQtd = paisesOrdenados.map(p => dadosPorPais[p].quantidade);
+
+            if (meuGrafico) meuGrafico.destroy();
+
+            const ctx = document.getElementById('grafico-paises').getContext('2d');
+            
+            // Ajusta a altura do container dinamicamente para caber todas as barras
+            const alturaNecessaria = Math.max(500, paisesOrdenados.length * 40);
+            document.getElementById('container-grafico').style.height = `${alturaNecessaria}px`;
+
+            meuGrafico = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Custo Total (R$)',
+                        data: valoresCusto,
+                        backgroundColor: 'rgba(241, 196, 15, 0.7)',
+                        borderColor: 'rgba(241, 196, 15, 1)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        // Dados extras para o tooltip (hover)
+                        _quantidades: valoresQtd
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // 👈 ISSO TRANSFORMA EM BARRAS HORIZONTAIS
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    layout: {
+                        padding: { left: 40 } // 👈 Aumentei o espaço à esquerda para caber a bandeira maior
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            // Customiza o tooltip (hover)
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].label; // Nome do país
+                                },
+                                label: function(context) {
+                                    const valor = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.raw);
+                                    const qtd = context.dataset._quantidades[context.dataIndex];               
+                                    return [`💰 Custo c/ Frete: ${valor}`, `🪙 Cédulas: ${qtd} un.`];
+                                }
+                            },
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 13 },
+                            padding: 10
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            beginAtZero: true, 
+                            ticks: { color: '#888' }, 
+                            grid: { color: '#333' } 
+                        },
+                        y: { 
+                            // Oculta os nomes dos países no Eixo Y (a bandeira substitui)
+                            ticks: { 
+                                color: 'transparent', 
+                                display: false 
+                            }, 
+                            grid: { display: false } 
+                        }
+                    }
+                },
+                plugins: [pluginBandeiras] // 👈 Ativa o plugin que desenha as imagens
+            });
+        }
+
+        // 👇 COLE A FUNÇÃO EXCLUIR LOTE AQUI 👇
+        async function excluirLote(cedula_id) {
+            mostrarConfirmacao(
+                "⚠️ Excluir Lote Completo", 
+                "Tem certeza que deseja excluir o lote INTEIRO? Todas as cédulas vinculadas a ele serão apagadas do banco.",
+                async () => {
+                    try {
+                        const res = await fetch(`/api/excluir_lote/${cedula_id}`, {
+                            method: 'DELETE'
+                        });
+                        const data = await res.json();
+                        
+                        if (res.ok) {
+                            mostrarAlerta("✅ Sucesso", data.mensagem, "sucesso");
+                            carregarDadosPesquisa(); // Recarrega a lista de pesquisa
+                        } else {
+                            mostrarAlerta("❌ Erro", data.erro, "erro");
+                        }
+                    } catch (e) {
+                        mostrarAlerta("❌ Erro", "Falha ao conectar com o servidor.", "erro");
+                    }
+                }
+            );
+        }
+        // 👆 FIM DA FUNÇÃO EXCLUIR LOTE 👆
+
+        function fecharModalNovoVendedor() {
+            document.getElementById('modal-novo-vendedor').style.display = 'none';
+        }
+
+        async function salvarNovoVendedor() {
+            const input = document.getElementById('input-novo-vendedor');
+            const novoNome = input.value.trim();
+
+            if (novoNome === "") {
+                mostrarAlerta("⚠️ Aviso", "O nome do vendedor não pode estar em branco.", "aviso");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/adicionar_vendedor', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome: novoNome })
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    if (!listaVendedores.includes(novoNome)) listaVendedores.push(novoNome);
+                    document.getElementById('vendedor-lote').value = novoNome;
+                    fecharModalNovoVendedor();
+                    mostrarAlerta("✅ Sucesso", `Vendedor "${novoNome}" cadastrado no banco!`, "sucesso");
+                } else {
+                    mostrarAlerta("❌ Erro", data.erro, "erro");
+                }
+            } catch (e) {
+                mostrarAlerta("❌ Erro", "Falha ao conectar com o servidor.", "erro");
+            }
+        }
+       
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarVendedoresDoBanco();
+        });
     </script>
 </body>
 </html>

@@ -17,7 +17,6 @@ class ProcessadorPDF:
                 if texto:
                     self.texto_completo += texto + "\n"
         
-        # Salva o texto bruto para debug (opcional, mas ajuda)
         with open("debug_pdf.txt", "w", encoding="utf-8") as f:
             f.write(self.texto_completo)
         
@@ -27,7 +26,6 @@ class ProcessadorPDF:
         linhas = self.texto_completo.split('\n')
         cedulas_extraidas = []
         
-        # Puxa a data global do topo
         data_compra_global = ""
         match_data = re.search(r'\b(\d{2}/\d{2}/\d{4})\b', self.texto_completo)
         if match_data:
@@ -39,7 +37,6 @@ class ProcessadorPDF:
         while i < len(linhas):
             linha = linhas[i]
             
-            # TRAVA DE SEGURANÇA: Ignora linhas de totais ou lixo
             if any(palavra in linha.lower() for palavra in ['totais', 'desconto', 'pago', 'pendente', 'total final']):
                 i += 1
                 continue
@@ -50,21 +47,18 @@ class ProcessadorPDF:
                 lote = match.group(1)
                 texto_bloco = match.group(2).strip()
                 
-                # Junta com a linha de baixo
                 if (i + 1) < len(linhas):
                     proxima_linha = linhas[i+1]
                     if not re.match(r'^\d{4,5}\s*-', proxima_linha):
                         texto_bloco += " " + proxima_linha
                         i += 1 
                 
-                # 1. ANO PRIMEIRO (A ordem importa!)
                 ano = ""
                 match_ano = re.search(r'\b(19|20)\d{2}(?:\s*-\s*(19|20)\d{2})?\b', texto_bloco)
                 if match_ano:
                     ano = match_ano.group(0).replace(' ', '')
                     texto_bloco = texto_bloco.replace(match_ano.group(0), '')
 
-                # 2. VALOR TOTAL (R$)
                 match_valor = re.search(r'R\$\s*([\d,]+)', texto_bloco)
                 if not match_valor:
                     i += 1
@@ -72,7 +66,6 @@ class ProcessadorPDF:
                 valor = float(match_valor.group(1).replace(',', '.'))
                 texto_bloco = texto_bloco.replace(match_valor.group(0), '')
 
-                # 3. PAÍS
                 match_pais = re.match(r'^([A-Za-zÀ-ÿ\s]+?)(?:\s*-|\s*\d)', texto_bloco)
                 if match_pais:
                     pais = match_pais.group(1).strip()
@@ -80,13 +73,13 @@ class ProcessadorPDF:
                 else:
                     pais = "Desconhecido"
 
-                # 4. ESTADO
+                # 👇 NOVA LINHA: Remove R$ e o valor antes de verificar o estado
+                texto_bloco = re.sub(r'R\$\s*[\d\.\,]+', '', texto_bloco)
                 estado = traduzir_estado(texto_bloco) or "R"
                 for sigla, variacoes in ESTADOS_CONSERVACAO.items():
                     for v in variacoes:
                         texto_bloco = re.sub(rf'\b{re.escape(v)}\b', '', texto_bloco, flags=re.IGNORECASE)
 
-                # 5. QUANTIDADE E DESCRIÇÃO
                 texto_bloco = texto_bloco.replace('polímero', '').replace('polimero', '').replace('soberba', '')
                 texto_bloco = re.sub(r'\d+,\d+', '', texto_bloco)
                 texto_bloco = texto_bloco.replace('R$', '').replace('(', '').replace(')', '').replace('-', ' ').strip()
@@ -95,7 +88,6 @@ class ProcessadorPDF:
                 descricao_palavras = []
                 quantidade = 1
                 
-                # Limpa palavras e acha a quantidade
                 for p in palavras:
                     if p.isdigit() and 1 <= int(p) <= 9 and len(descricao_palavras) > 0:
                         quantidade = int(p)
@@ -107,15 +99,8 @@ class ProcessadorPDF:
                 descricao_final = ' '.join(descricao_palavras).strip().title()
 
                 cedulas_extraidas.append({
-                    'codigo': lote,
-                    'pais': pais,
-                    'descricao': descricao_final,
-                    'ano': ano,
-                    'estado': estado,
-                    'pick': "",
-                    'quantidade': quantidade,
-                    'valor': valor,
-                    'data': data_compra_global
+                    'codigo': lote, 'pais': pais, 'descricao': descricao_final, 'ano': ano,
+                    'estado': estado, 'pick': "", 'quantidade': quantidade, 'valor': valor, 'data': data_compra_global
                 })
                 
             i += 1 
@@ -151,15 +136,14 @@ def create_app():
             if match_data:
                 data_compra = match_data.group(1)
 
-            # Adicionado Guatemala e Nigéria na lista
-            paises_compostos = ["Papua Nova Guiné", "Ilhas Salomão", "Reino Unido", "Nova Zelândia", "África do Sul", "Coreia do Sul", "Coreia do Norte", "Costa Rica", "El Salvador", "Estados Unidos", "Transnistria", "Guatemala", "Nigéria"]
-            lixos_qualquer_lugar = ["Rara", "Polimero", "Polímero", "Estrangeira", "Edição", "Comemorativa", "Aniversário", "Universidade", "Dr."]
+            paises_compostos = ["Papua Nova Guiné", "Ilhas Salomão", "Reino Unido", "Nova Zelândia", "África do Sul", "Coreia do Sul", "Coreia do Norte", "Costa Rica", "El Salvador", "Estados Unidos", "Transnistria", "Guatemala", "Nigéria", "Tchecoslováquia", "Serra Leoa", "Afeganistão", "Coréia do Sul", "Seychelles", "Hungria"]
+            lixos_qualquer_lugar = ["Rara", "Polimero", "Polímero", "Estrangeira", "Edição", "Comemorativa", "Aniversário", "Universidade", "Dr.", "Escassa", "Muito", "Difícil", "Bastante", "Atrativa", "Estimativa", "Tipo", "Pick", "Flor de Estampa"]
 
             i = 0
             while i < len(linhas):
                 linha = linhas[i]
                 
-                if any(palavra in linha.lower() for palavra in ['sedex', 'frete', 'total', 'desconto', 'pago', 'pendente', 'dados bancários', 'pix:', 'banco']):
+                if any(palavra in linha.lower() for palavra in ['sedex', 'frete', 'total', 'desconto', 'pago', 'pendente', 'dados bancários', 'pix:', 'banco', 'pac', 'jadlog', 'mini envio']):
                     i += 1
                     continue
                 
@@ -180,41 +164,32 @@ def create_app():
                             valor = float(valor_str)
                     
                     if descricao_completa and valor > 0:
-                        # 1. Limpa o início (O SEGREDO ESTÁ AQUI: remove "Cédula" mesmo sem artigo)
-                        descricao = re.sub(r'^Cédula\s+(Estrangeira|da|do|de|dos|das)?\s*-\s*', '', descricao_completa, flags=re.IGNORECASE).strip()
-                        descricao = re.sub(r'^Cédula\s+(Estrangeira|da|do|de|dos|das)\s+', '', descricao, flags=re.IGNORECASE).strip()
-                        descricao = re.sub(r'^Cédula\s+', '', descricao, flags=re.IGNORECASE).strip() # <--- REMOVE "CÉDULA" SOZINHO
-                        descricao = re.sub(r'^(dos|das|do|da|de)\s+', '', descricao, flags=re.IGNORECASE).strip()
+                        descricao = re.sub(r'^\s*C[ÉE]DULA\s+(Estrangeira|da|do|de|dos|das)?\s*[-]?\s*', '', descricao_completa, flags=re.IGNORECASE).strip()
+                        descricao = re.sub(r'^\s*C[ÉE]DULA\s+', '', descricao, flags=re.IGNORECASE).strip()
+                        descricao = re.sub(r'^\s*(dos|das|do|da|de)\s+', '', descricao, flags=re.IGNORECASE).strip()
                         
-                        # 2. Remove parênteses
                         descricao = re.sub(r'\(.*?\)', '', descricao).strip()
                         
-                        # 3. A MÁGICA DO ANO: Pega TODOS os anos e escolhe o ÚLTIMO que apareceu
                         anos_encontrados = re.findall(r'\b(?:19|20)\d{2}\b', descricao)
                         ano = ""
                         if anos_encontrados:
-                            ano = anos_encontrados[-1] # Pega o último
-                            # Remove APENAS o último ano da string
+                            ano = anos_encontrados[-1]
                             descricao = descricao[::-1].replace(ano[::-1], '', 1)[::-1].strip()
                         
-                        # 4. Extrai o PICK
                         pick = ""
-                        match_pick = re.search(r'\bP-?\s*\d+[a-z]*\b', descricao, re.IGNORECASE)
+                        match_pick = re.search(r'\b(?:Pick|P[-#]?)\s*(\d+[a-z]*)\b', descricao, re.IGNORECASE)
                         if match_pick:
-                            pick = match_pick.group(0).upper()
+                            pick = match_pick.group(1).upper()
                             descricao = descricao.replace(match_pick.group(0), '').strip()
                         
-                        # 5. Extrai o ESTADO
                         estado = traduzir_estado(descricao) or "R"
                         for sigla, variacoes in ESTADOS_CONSERVACAO.items():
                             for v in variacoes:
                                 descricao = re.sub(rf'\b{re.escape(v)}\b', '', descricao, flags=re.IGNORECASE)
                         
-                        # 6. LIMPEZA FINAL DA DESCRIÇÃO
-                        descricao = descricao.replace('-', ' ').strip()
+                        descricao = descricao.replace('-', ' ').replace('#', ' ').strip()
                         descricao = re.sub(r'\s+', ' ', descricao).strip()
                         
-                        # Separa País e Descrição
                         pais = "Desconhecido"
                         descricao_final = descricao.title()
                         
@@ -229,11 +204,9 @@ def create_app():
                             pais = partes[0]
                             descricao_final = ' '.join(partes[1:]).strip().title()
 
-                        # Remove lixos de qualquer lugar
                         for lixo in lixos_qualquer_lugar:
                             descricao_final = re.sub(rf'\b{lixo}\b', '', descricao_final, flags=re.IGNORECASE).strip()
 
-                        # Remove a última palavra se for curta (Sob, Ec, etc)
                         palavras_desc = descricao_final.split()
                         if palavras_desc:
                             ultima_palavra = palavras_desc[-1]
@@ -244,15 +217,8 @@ def create_app():
                         descricao_final = re.sub(r'\s+', ' ', descricao_final).strip()
 
                         cedulas_extraidas.append({
-                            'codigo': lote,
-                            'pais': pais,
-                            'descricao': descricao_final,
-                            'ano': ano,
-                            'estado': estado,
-                            'pick': pick,
-                            'quantidade': 1,
-                            'valor': valor,
-                            'data': data_compra
+                            'codigo': lote, 'pais': pais, 'descricao': descricao_final, 'ano': ano,
+                            'estado': estado, 'pick': pick, 'quantidade': 1, 'valor': valor, 'data': data_compra
                         })
                         
                         i += 3
@@ -264,6 +230,24 @@ def create_app():
         except Exception as e:
             return jsonify({'erro': f'Erro ao ler o texto: {str(e)}'}), 500
         
+    # 👇 COLE A ROTA DO PDF AQUI 👇
+    @app.route('/processar_pdf', methods=['POST'])
+    def processar_pdf():
+        if 'arquivo_pdf' not in request.files:
+            return jsonify({'erro': 'Nenhum arquivo enviado'}), 400
+        arquivo = request.files['arquivo_pdf']
+        if arquivo.filename == '':
+            return jsonify({'erro': 'Arquivo sem nome'}), 400
+        
+        try:
+            processador = ProcessadorPDF(arquivo)
+            processador.extrair_texto()
+            cedulas = processador.extrair_cedulas()
+            return jsonify({'cedulas': cedulas}), 200
+        except Exception as e:
+            return jsonify({'erro': f'Erro ao processar PDF: {str(e)}'}), 500
+    # 👆 FIM DA ROTA DO PDF 👆
+    
     @app.route('/salvar_lote', methods=['POST'])
     def salvar_lote():
         dados = request.get_json()
@@ -279,10 +263,44 @@ def create_app():
                 db.session.add(vendedor)
                 db.session.flush()
 
+            # --- TRAVA DE SEGURANÇA (ANTI-DUPLICIDADE) ---
+            # Verifica se já existe um lote com o mesmo Vendedor, Data e Valor Total
+            ref_lote_para_verificar = ""
+            data_compra_para_verificar = ""
+            
+            if dados.get('cedulas') and len(dados['cedulas']) > 0:
+                ref_lote_para_verificar = dados['cedulas'][0].get('ref_lote', '')
+                data_compra_para_verificar = dados['cedulas'][0].get('data', '')
+            
+            # Verifica duplicidade por Ref. Lote (se preenchida)
+            if ref_lote_para_verificar:
+                lote_existente = Lote.query.filter_by(
+                    vendedor_id=vendedor.id, 
+                ).join(Cedula).filter(Cedula.ref_lote == ref_lote_para_verificar).first()
+
+                if lote_existente:
+                    return jsonify({'erro': f'⚠️ Este lote (Ref: {ref_lote_para_verificar}) já foi cadastrado para o vendedor {nome_vendedor}!'}), 400
+            
+            # Se não tiver Ref. Lote, verifica duplicidade por Data + Valor Total do Lote
+            elif data_compra_para_verificar:
+
+                total_cedulas_novo = sum(float(c.get('martelo', 0)) * int(c.get('quantidade', 1)) for c in dados['cedulas'])
+                
+                # Busca lotes do mesmo vendedor e mesma data
+                lotes_existentes = Lote.query.filter_by(
+                    vendedor_id=vendedor.id
+                ).join(Cedula).filter(Cedula.data_compra == data_compra_para_verificar).all()
+                
+                for lote_ex in lotes_existentes:
+                    total_cedulas_existente = sum(c.martelo * c.quantidade for c in lote_ex.cedulas)
+                    if abs(total_cedulas_existente - total_cedulas_novo) < 0.01: # Compara valores
+                        return jsonify({'erro': f'⚠️ Já existe um lote com este mesmo vendedor ({nome_vendedor}), data ({data_compra_para_verificar}) e valor total ({total_cedulas_novo:.2f})!'}), 400
+            # ---------------------------------------------
+
             novo_lote = Lote(
                 vendedor_id=vendedor.id,
                 tipo=dados.get('tipo', 'Leilão Oficial'),
-                origem=dados.get('origem', 'Leilão Oficial'), # <-- Pega a origem do JS
+                origem=dados.get('origem', 'Leilão Oficial'),
                 frete=float(dados.get('frete', 0.0)),
                 custos_extras=float(dados.get('custos_extras', 0.0))
             )
@@ -295,7 +313,7 @@ def create_app():
                     pais=cedula_data.get('pais', ''),
                     valor_facial=cedula_data.get('descricao', ''),
                     ano=cedula_data.get('ano', ''),
-                    catalogo=cedula_data.get('codigo', ''), # O Pick
+                    catalogo=cedula_data.get('codigo', ''),
                     estado=cedula_data.get('estado', 'R'),
                     quantidade=int(cedula_data.get('quantidade', 1)),
                     data_compra=cedula_data.get('data', ''),
@@ -312,7 +330,116 @@ def create_app():
             db.session.rollback()
             return jsonify({'erro': str(e)}), 500
 
-    return app
+    # --- ROTAS DA API ---
+    @app.route('/api/vendedores', methods=['GET'])
+    def api_vendedores():
+        try:
+            vendedores = Vendedor.query.order_by(Vendedor.nome).all()
+            lista = [{'id': v.id, 'nome': v.nome} for v in vendedores]
+            return jsonify({'vendedores': lista})
+        except Exception as e:
+            return jsonify({'erro': str(e)}), 500
+
+    @app.route('/api/adicionar_vendedor', methods=['POST'])
+    def api_adicionar_vendedor():
+        dados = request.get_json()
+        nome = dados.get('nome', '').strip()
+        
+        if not nome:
+            return jsonify({'erro': 'Nome não informado'}), 400
+            
+        try:
+            existente = Vendedor.query.filter_by(nome=nome).first()
+            if existente:
+                return jsonify({'mensagem': 'Vendedor já cadastrado!', 'id': existente.id}), 200
+                
+            novo_vendedor = Vendedor(nome=nome)
+            db.session.add(novo_vendedor)
+            db.session.commit()
+            return jsonify({'mensagem': 'Vendedor cadastrado!', 'id': novo_vendedor.id}), 201
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'erro': str(e)}), 500
+
+    
+    @app.route('/api/pesquisar', methods=['GET'])
+    def api_pesquisar():
+        try:
+            resultados = db.session.query(
+                Cedula.id, Cedula.lote_id, Cedula.pais, Cedula.valor_facial, Cedula.ano, 
+                Cedula.catalogo, Cedula.estado, Cedula.quantidade, 
+                Cedula.martelo, Cedula.taxa_leilao, Cedula.data_compra, 
+                Cedula.ref_lote, Lote.origem, Lote.frete, Lote.custos_extras, Vendedor.nome
+            ).join(Lote, Cedula.lote_id == Lote.id)\
+             .join(Vendedor, Lote.vendedor_id == Vendedor.id)\
+             .order_by(Cedula.id.desc()).all()
+
+            # Precisamos do valor total de cada lote para fazer o rateio proporcional
+            # Vamos agrupar por lote_id e calcular o total de martelos de cada um
+            totais_lotes = {}
+            for r in resultados:
+                if r.lote_id not in totais_lotes:
+                    totais_lotes[r.lote_id] = 0
+                # O valor base do lote é martelo * quantidade
+                totais_lotes[r.lote_id] += (r.martelo * r.quantidade)
+
+            lista_cedulas = []
+            for r in resultados:
+                # Calcula o valor base da cédula (Martelo * Qtd + Taxa)
+                valor_bruto = r.martelo * r.quantidade
+                valor_base = valor_bruto + (valor_bruto * (r.taxa_leilao / 100))
+                
+                # Calcula o Rateio do Frete
+                valor_total_frete_lote = r.frete + r.custos_extras
+                total_martelos_lote = totais_lotes[r.lote_id]
+                
+                rateio = 0.0
+                if total_martelos_lote > 0:
+                    # (Valor base da cédula / Valor total do lote) * Frete Total
+                    rateio = (valor_bruto / total_martelos_lote) * valor_total_frete_lote
+                
+                custo_final = valor_base + rateio
+                
+                lista_cedulas.append({
+                    'id': r.id, 
+                    'lote_id': r.lote_id,
+                    'pais': r.pais, 
+                    'descricao': f"{r.valor_facial} {r.ano}".strip(),
+                    'catalogo': r.catalogo, 
+                    'estado': r.estado, 
+                    'quantidade': r.quantidade,
+                    'martelo': r.martelo, 
+                    'custo_base': valor_base,      # O valor sem frete
+                    'rateio': rateio,              # O valor do frete rateado
+                    'custo_final': custo_final,    # O valor real (base + frete)
+                    'data': r.data_compra,
+                    'ref_lote': r.ref_lote, 
+                    'origem': r.origem, 
+                    'vendedor': r.nome
+                })
+            
+            return jsonify({'cedulas': lista_cedulas})
+        except Exception as e:
+            return jsonify({'erro': str(e)}), 500
+        
+    @app.route('/api/excluir_lote/<int:lote_id>', methods=['DELETE'])
+    def api_excluir_lote(lote_id):
+        try:
+            lote = Lote.query.get(lote_id)
+            if not lote:
+                return jsonify({'erro': 'Lote não encontrado'}), 404
+            
+            db.session.delete(lote)
+            db.session.commit()
+            
+            return jsonify({'mensagem': 'Lote excluído com sucesso!'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'erro': str(e)}), 500
+    # 👆 FIM DA NOVA ROTA 👆
+
+    return app   
+
 
 if __name__ == '__main__':
     app = create_app()
