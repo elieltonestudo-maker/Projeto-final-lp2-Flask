@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, jsonify, Response
 import re
+import webbrowser     
+import threading      
 from models import db, Vendedor, Lote, Cedula
 from dicionario import traduzir_estado, ESTADOS_CONSERVACAO
 from services.pdf_processor import ProcessadorPDF
@@ -240,8 +242,20 @@ def create_app():
     return app   
 
 
+import webbrowser
+import threading
+
 if __name__ == '__main__':
     app = create_app()
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    
+    # Função que abre o navegador após 1 segundo (para dar tempo do Flask subir)
+    def abrir_navegador():
+        webbrowser.open_new('http://127.0.0.1:5000/')
+
+    # Dispara a abertura do navegador em uma thread separada
+    threading.Timer(1, abrir_navegador).start()
+    
+    # Inicia o Flask
+    app.run(debug=True, use_reloader=False)

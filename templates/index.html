@@ -1737,9 +1737,19 @@
         }
 
         function sairSistema() {
-            if (confirm("Deseja realmente sair do sistema?")) {
-                window.close();
-            }
+            mostrarConfirmacao(
+                "🚪 Sair do Sistema", 
+                "Deseja realmente sair do sistema? Todas as suas alterações já foram salvas automaticamente no banco de dados.",
+                () => {
+                    // Tenta fechar a aba
+                    window.close();
+                    
+                    // Se o navegador bloquear o fechamento (por segurança), mostra um alerta
+                    setTimeout(() => {
+                        mostrarAlerta("👋 Até logo!", "Você pode fechar esta aba do navegador com segurança. Os dados estão salvos.", "sucesso");
+                    }, 100);
+                }
+            );
         }
 
         // --- BOTÃO OLHINHO (Ocultar Valores) ---
