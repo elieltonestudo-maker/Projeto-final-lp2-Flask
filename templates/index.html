@@ -1736,18 +1736,14 @@
             }
         }
 
-        function sairSistema() {
+                function sairSistema() {
             mostrarConfirmacao(
                 "🚪 Sair do Sistema", 
-                "Deseja realmente sair do sistema? Todas as suas alterações já foram salvas automaticamente no banco de dados.",
+                "Deseja realmente sair do sistema?",
                 () => {
-                    // Tenta fechar a aba
-                    window.close();
-                    
-                    // Se o navegador bloquear o fechamento (por segurança), mostra um alerta
-                    setTimeout(() => {
-                        mostrarAlerta("👋 Até logo!", "Você pode fechar esta aba do navegador com segurança. Os dados estão salvos.", "sucesso");
-                    }, 100);
+                    // Em vez de apenas mudar de página, limpamos o histórico do navegador
+                    // para que o botão "Voltar" não acesse a tela antiga.
+                    window.location.replace('/logout'); 
                 }
             );
         }

@@ -11,6 +11,9 @@ from services.lote_service import LoteService
 from services.sistema_service import SistemaService
 from services.relatorio_service import RelatorioService
 from services.exclusao_service import ExclusaoService
+from flask import session, redirect, url_for
+from services.auth_service import AuthService
+
 
 
 # --- FÁBRICA DA APLICAÇÃO FLASK ---
@@ -18,11 +21,53 @@ def create_app():
     app = Flask(__name__)
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cedulas.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SECRET_KEY'] = 'uma-chave-super-secreta-para-sessoes-2' 
     db.init_app(app)
 
     @app.route('/')
     def index():
         return render_template('index.html')
+
+    # 👇 BLOCO DE LOGIN E LOGOUT AQUI 👇
+    @app.before_request
+    def require_login():
+        # Lista de rotas que NÃO precisam de login
+        rotas_livres = ['login', 'static'] 
+        if request.endpoint and not AuthService.esta_logado() and request.endpoint not in rotas_livres:
+            return redirect(url_for('login'))
+
+    @app.after_request
+    def add_header(response):
+        # Impede o navegador de fazer cache das páginas do sistema
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response       
+
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        if AuthService.esta_logado():
+            return redirect(url_for('index'))
+            
+        if request.method == 'POST':
+            senha = request.form.get('senha')
+            if AuthService.verificar_senha(senha):
+                AuthService.fazer_login()
+                return redirect(url_for('index'))
+            else:
+                return render_template('login.html', erro='Senha incorreta. Tente novamente.')
+                
+        return render_template('login.html')
+
+    @app.route('/logout')
+    def logout():
+        AuthService.fazer_logout()
+        # Cria a resposta de redirecionamento
+        response = redirect(url_for('login'))
+        # Força a limpeza do cookie de sessão no navegador
+        response.delete_cookie('session')
+        return response
+    # 👆 FIM DO BLOCO DE LOGIN E LOGOUT 👆
 
     @app.route('/processar_texto', methods=['POST'])
     def processar_texto():
@@ -39,7 +84,8 @@ def create_app():
         except Exception as e:
             return jsonify({'erro': f'Erro ao ler o texto: {str(e)}'}), 500
 
-    # 👇 COLE A ROTA DO PDF AQUI 👇
+   
+   # 👇 COLE A ROTA DO PDF AQUI 👇
     @app.route('/processar_pdf', methods=['POST'])
     def processar_pdf():
         if 'arquivo_pdf' not in request.files:
@@ -185,9 +231,6 @@ def create_app():
    
     return app   
 
-
-import webbrowser
-import threading
 
 if __name__ == '__main__':
     app = create_app()
