@@ -8,10 +8,15 @@ class ExportadorDados:
 
     def para_csv(self):
         output = io.StringIO()
+        # 👇 Adicione o \ufeff antes de tudo 👇
+        output.write('\ufeff') 
+        
         writer = csv.writer(output, delimiter=';', quoting=csv.QUOTE_MINIMAL)
         
+        # Cabeçalho
         writer.writerow(['ID', 'País', 'Valor Facial', 'Ano', 'Catálogo', 'Estado', 'Qtd', 'Martelo', 'Data', 'Vendedor'])
         
+        # Linhas
         for r in self.dados:
             writer.writerow([
                 r.get('id'), r.get('pais'), r.get('descricao'), r.get('ano'), 

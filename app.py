@@ -9,6 +9,8 @@ from services.exportadores import ExportadorDados
 from services.text_processor import ProcessadorTexto
 from services.lote_service import LoteService
 from services.sistema_service import SistemaService
+from services.relatorio_service import RelatorioService
+from services.exclusao_service import ExclusaoService
 
 
 # --- FÁBRICA DA APLICAÇÃO FLASK ---
@@ -156,78 +158,20 @@ def create_app():
 
     @app.route('/api/exportar/<formato>', methods=['GET'])
     def api_exportar(formato):
-        try:
-            # 1. Busca os dados no banco (usando a mesma query da pesquisa)
-            resultados = db.session.query(
-                Cedula.id, Cedula.pais, Cedula.valor_facial, Cedula.ano, 
-                Cedula.catalogo, Cedula.estado, Cedula.quantidade, 
-                Cedula.martelo, Cedula.data_compra, Vendedor.nome
-            ).join(Lote, Cedula.lote_id == Lote.id)\
-             .join(Vendedor, Lote.vendedor_id == Vendedor.id)\
-             .order_by(Cedula.id.desc()).all()
+        resultado = RelatorioService.exportar(formato)
+        if isinstance(resultado, tuple): 
+            return jsonify(resultado[0]), resultado[1]
+        return resultado 
 
-            # 2. Formata os dados para o formato que a classe espera
-            lista_dados = []
-            for r in resultados:
-                lista_dados.append({
-                    'id': r.id, 
-                    'pais': r.pais, 
-                    'descricao': f"{r.valor_facial} {r.ano}".strip(),
-                    'ano': r.ano, 
-                    'catalogo': r.catalogo, 
-                    'estado': r.estado, 
-                    'quantidade': r.quantidade,
-                    'martelo': r.martelo, 
-                    'data': r.data_compra, 
-                    'vendedor': r.nome
-                })
-
-            # 3. Instancia a classe Exportadora
-            exportador = ExportadorDados(lista_dados)
-
-            # 4. Retorna o arquivo no formato escolhido
-            if formato == 'csv':
-                return Response(exportador.para_csv(), mimetype='text/csv', 
-                                headers={"Content-Disposition": "attachment;filename=relatorio_cedulas.csv"})
-            elif formato == 'json':
-                return Response(exportador.para_json(), mimetype='application/json')
-            elif formato == 'txt':
-                return Response(exportador.para_txt(), mimetype='text/plain')
-            else:
-                return jsonify({'erro': 'Formato não suportado. Use csv, json ou txt.'}), 400
-                
-        except Exception as e:
-            return jsonify({'erro': str(e)}), 500    
-        
     @app.route('/api/excluir_lote/<int:lote_id>', methods=['DELETE'])
     def api_excluir_lote(lote_id):
-        try:
-            lote = Lote.query.get(lote_id)
-            if not lote:
-                return jsonify({'erro': 'Lote não encontrado'}), 404
-            
-            db.session.delete(lote)
-            db.session.commit()
-            
-            return jsonify({'mensagem': 'Lote excluído com sucesso!'}), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'erro': str(e)}), 500
-        
+        resultado, status = ExclusaoService.excluir_lote(lote_id)
+        return jsonify(resultado), status
+
     @app.route('/api/excluir_cedula/<int:cedula_id>', methods=['DELETE'])
     def api_excluir_cedula(cedula_id):
-        try:
-            cedula = Cedula.query.get(cedula_id)
-            if not cedula:
-                return jsonify({'erro': 'Cédula não encontrada'}), 404
-            
-            db.session.delete(cedula)
-            db.session.commit()
-            
-            return jsonify({'mensagem': 'Cédula excluída com sucesso!'}), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'erro': str(e)}), 500
+        resultado, status = ExclusaoService.excluir_cedula(cedula_id)
+        return jsonify(resultado), status
          
     
     @app.route('/api/backup')
