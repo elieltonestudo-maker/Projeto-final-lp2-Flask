@@ -263,7 +263,28 @@
         </div>
     </div>
 
-    <div class="header">Aquisições</div>
+    <!-- CABEÇALHO COM MENU DE CONFIGURAÇÕES -->
+    <div class="header" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 30px;">
+        <div style="font-size: 24px; font-weight: bold; color: var(--gold-accent);">Aquisições</div>
+        
+        <div style="display: flex; gap: 15px; align-items: center; position: relative;">
+            <!-- 👁️ Botão Olhinho -->
+            <button class="btn btn-outline" id="btn-ocultar-valores" onclick="toggleValores()" style="padding: 8px 12px;" title="Ocultar/Mostrar Valores">
+                👁️
+            </button>
+
+            <!-- ⚙️ Menu de Configurações -->
+            <div style="position: relative;">
+                <button class="btn btn-outline" onclick="toggleMenuConfig()" style="padding: 8px 12px;" title="Configurações">⚙️</button>
+                
+                <div id="menu-config" style="display: none; position: absolute; right: 0; top: 110%; background: var(--panel-bg); border: 1px solid var(--gold-accent); border-radius: 5px; min-width: 220px; z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.5);">
+                    <button onclick="fazerBackup()" style="display: block; width: 100%; text-align: left; padding: 12px; background: none; border: none; color: var(--text-color); cursor: pointer; border-bottom: 1px solid var(--border-color);">💾 Fazer Backup</button>
+                    <button onclick="atualizarBandeiras()" style="display: block; width: 100%; text-align: left; padding: 12px; background: none; border: none; color: var(--text-color); cursor: pointer; border-bottom: 1px solid var(--border-color);">🔄 Atualizar Bandeiras</button>
+                    <button onclick="sairSistema()" style="display: block; width: 100%; text-align: left; padding: 12px; background: none; border: none; color: #ff4d4d; cursor: pointer;">🚪 Sair</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="tabs-container">
         <div class="tab active" onclick="switchTab('registrar')">📄 REGISTRAR</div>
@@ -1141,7 +1162,7 @@
                     
                     <div style="text-align: right; margin-right: 15px;">
                         <div style="font-size: 11px; color: #888; margin-bottom: 3px;">Custo Final (com Frete)</div>
-                        <div style="font-weight: bold; font-size: 16px; color: var(--gold-accent);">${valorFormatado}</div>
+                        <div class="valor-formatado" style="font-weight: bold; font-size: 16px; color: var(--gold-accent);">${valorFormatado}</div>
                         <div style="font-size: 10px; color: #aaa;">Estado: ${c.estado} | Qtd: ${c.quantidade}</div>
                         <div style="font-size: 9px; color: #666; margin-top: 2px;">Base: R$ ${c.custo_base.toFixed(2)} | Frete: R$ ${c.rateio.toFixed(2)}</div>
                     </div>
@@ -1679,8 +1700,77 @@
                     }
                 );
             }
+        }       
+        
+        // --- LÓGICA DO MENU DE CONFIGURAÇÕES ---
+        function toggleMenuConfig() {
+            const menu = document.getElementById('menu-config');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
         }
-       
+
+        // Fecha o menu se clicar fora
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('menu-config');
+            const btn = event.target.closest('button');
+            if (menu && !menu.contains(event.target) && (!btn || btn.getAttribute('onclick') !== 'toggleMenuConfig()')) {
+                menu.style.display = 'none';
+            }
+        });
+
+        function fazerBackup() {
+            window.location.href = '/api/backup';
+        }
+
+        async function atualizarBandeiras() {
+            mostrarAlerta("🔄 Atualizando", "Aguarde enquanto o sistema atualiza as bandeiras...", "aviso");
+            try {
+                const res = await fetch('/api/atualizar_bandeiras', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    mostrarAlerta("✅ Sucesso", data.mensagem, "sucesso");
+                } else {
+                    mostrarAlerta("❌ Erro", data.erro, "erro");
+                }
+            } catch (e) {
+                mostrarAlerta("❌ Erro", "Falha ao conectar.", "erro");
+            }
+        }
+
+        function sairSistema() {
+            if (confirm("Deseja realmente sair do sistema?")) {
+                window.close();
+            }
+        }
+
+        // --- BOTÃO OLHINHO (Ocultar Valores) ---
+        let valoresOcultos = false;
+        function toggleValores() {
+            valoresOcultos = !valoresOcultos;
+            const botao = document.getElementById('btn-ocultar-valores');
+            botao.innerText = valoresOcultos ? '🙈' : '👁️';
+
+            const seletoresTabela = ['.td-subtotal', '.td-rateio', '.td-custo-final', '#total-cedulas', '#total-frete', '#total-geral'];
+            seletoresTabela.forEach(sel => {
+                document.querySelectorAll(sel).forEach(el => {
+                    if (valoresOcultos) {
+                        el.setAttribute('data-valor-original', el.innerText);
+                        el.innerText = '••••••';
+                    } else {
+                        el.innerText = el.getAttribute('data-valor-original') || el.innerText;
+                    }
+                });
+            });
+
+            document.querySelectorAll('.valor-formatado').forEach(el => {
+                if (valoresOcultos) {
+                    el.setAttribute('data-valor-original', el.innerText);
+                    el.innerText = '••••••';
+                } else {
+                    el.innerText = el.getAttribute('data-valor-original') || el.innerText;
+                }
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             // Inicializa a classe de filtros
             filtroManager = new FiltroManager(); 

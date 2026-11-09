@@ -6,6 +6,7 @@ from services.pdf_processor import ProcessadorPDF
 from services.exportadores import ExportadorDados
 from services.text_processor import ProcessadorTexto
 from services.lote_service import LoteService
+from services.sistema_service import SistemaService
 
 
 # --- FÁBRICA DA APLICAÇÃO FLASK ---
@@ -210,7 +211,7 @@ def create_app():
         except Exception as e:
             db.session.rollback()
             return jsonify({'erro': str(e)}), 500
-
+        
     @app.route('/api/excluir_cedula/<int:cedula_id>', methods=['DELETE'])
     def api_excluir_cedula(cedula_id):
         try:
@@ -225,7 +226,17 @@ def create_app():
         except Exception as e:
             db.session.rollback()
             return jsonify({'erro': str(e)}), 500
+         
+    
+    @app.route('/api/backup')
+    def api_backup():
+        return SistemaService.gerar_backup(app)
 
+    @app.route('/api/atualizar_bandeiras', methods=['POST'])
+    def api_atualizar_bandeiras():
+        resultado, status = SistemaService.atualizar_bandeiras()
+        return jsonify(resultado), status
+   
     return app   
 
 
