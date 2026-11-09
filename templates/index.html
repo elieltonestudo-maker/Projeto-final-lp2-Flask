@@ -100,6 +100,97 @@
         </div>
     </div>
 
+    <!-- MODAL DE FILTROS AVANÇADOS -->
+    <div class="modal-overlay" id="modal-filtros">
+        <div class="modal-box" style="max-width: 800px; text-align: left; padding: 30px;">
+            <h3 style="color: var(--gold-accent); margin-top: 0; margin-bottom: 25px;">⚙️ Filtros Avançados</h3>
+            
+            <!-- Grid de 3 colunas para os filtros -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                
+                <div>
+                    <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 5px;">Vendedor:</label>
+                    <select id="filtro-vendedor" style="width: 100%;">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 5px;">Continente:</label>
+                    <select id="filtro-continente" style="width: 100%;">
+                        <option value="">Todos</option>
+                        <option value="África">África</option>
+                        <option value="América">América</option>
+                        <option value="Ásia">Ásia</option>
+                        <option value="Europa">Europa</option>
+                        <option value="Oceania">Oceania</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 5px;">Conservação:</label>
+                    <select id="filtro-estado" style="width: 100%;">
+                        <option value="">Todas</option>
+                        <option value="FE">FE</option><option value="S/FE">S/FE</option>
+                        <option value="S">S</option><option value="MBC/S">MBC/S</option>
+                        <option value="MBC">MBC</option><option value="BC/MBC">BC/MBC</option>
+                        <option value="BC">BC</option><option value="R">R</option><option value="UTG">UTG</option>
+                    </select>
+                </div>
+
+                <!-- 👇 NOVO BLOCO DE FILTRO DINÂMICO AQUI 👇 -->
+                <div>
+                    <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 5px;">Filtrar por:</label>
+                    <select id="filtro-tipo" style="width: 100%;">
+                        <option value="quantidade">Quantidade (un)</option>
+                        <option value="custo">Custo Total (R$)</option>
+                        <option value="ano">Ano</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label id="label-filtro-min" style="font-size: 13px; color: #aaa; display: block; margin-bottom: 5px;">Qtd Mínima:</label>
+                    <input type="number" id="filtro-min" step="any" placeholder="Ex: 1" style="width: 100%;">
+                </div>
+                
+                <div>
+                    <label id="label-filtro-max" style="font-size: 13px; color: #aaa; display: block; margin-bottom: 5px;">Qtd Máxima:</label>
+                    <input type="number" id="filtro-max" step="any" placeholder="Ex: 10" style="width: 100%;">
+                </div>
+                <!-- 👆 FIM DO NOVO BLOCO 👆 -->
+
+                <div>
+                    <label style="font-size: 13px; color: #aaa; display: block; margin-bottom: 5px;">Ordenar Lista por:</label>
+                    <select id="filtro-ordem" style="width: 100%;">
+                        <option value="recente">Mais Recentes</option>
+                        <option value="antigo">Mais Antigos</option>
+                        <option value="valor_maior">Maior Custo (R$)</option>
+                        <option value="valor_menor">Menor Custo (R$)</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <!-- Novo Campo: Como o Gráfico deve ser montado -->
+            <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                <label style="font-size: 14px; color: var(--gold-accent); font-weight: bold; display: block; margin-bottom: 10px;">📊 Como deseja visualizar o gráfico?</label>
+                <select id="filtro-agrupamento-grafico" style="width: 100%; max-width: 400px;">
+                    <option value="vendedor_qtd">Ranking de Vendedores (Por Quantidade de Cédulas)</option>
+                    <option value="vendedor_valor">Ranking de Vendedores (Por Custo Total R$)</option>
+                    <option value="pais_qtd">Ranking de Países (Por Quantidade de Cédulas)</option>
+                    <option value="pais_valor">Ranking de Países (Por Custo Total R$)</option>
+                </select>
+            </div>
+
+            <div class="modal-actions" style="justify-content: space-between; margin-top: 30px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                <button class="btn btn-undo" id="btn-limpar-filtros">🧹 Limpar Filtros</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-outline" id="btn-fechar-filtros">Fechar</button>
+                    <button class="btn" id="btn-aplicar-filtros">Aplicar Filtros</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- MODAL DE ALERTA CUSTOMIZADO -->
     <div class="modal-overlay" id="modal-alerta">
         <div class="modal-box" style="max-width: 450px;">
@@ -226,22 +317,29 @@
         
         <!-- Painel de Busca -->
         <div class="panel" style="padding-bottom: 20px;">
-            <div class="input-group" style="margin-bottom: 0;">
-                <label>Buscar:</label>
-                <input type="text" id="input-busca" placeholder="Filtre por país, vendedor ou descrição..." style="width: 400px;" oninput="filtrarPesquisa()">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <label style="margin: 0; color: var(--text-color);">Buscar:</label>
+                <input type="text" id="input-busca" placeholder="Filtre por país, vendedor ou descrição..." style="width: 450px;">
+                <button class="btn btn-outline" id="btn-abrir-filtros" style="white-space: nowrap;">⚙️ Filtros Avançados</button>
             </div>
         </div> <!-- FECHA O PAINEL DE BUSCA -->
 
         <!-- MUDANÇA AQUI: Layout em coluna única -->
         <div style="display: flex; flex-direction: column; gap: 20px;">
             
-            <!-- Lista de Cédulas -->
-            <div class="panel" style="max-height: 400px; overflow-y: auto;">
-                <h3 class="panel-title">Cédulas Encontradas (<span id="contador-pesquisa">0</span>)</h3>
-                <div id="lista-pesquisa" style="display: flex; flex-direction: column; gap: 10px;">
-                    <p style="color: #888; text-align: center;">Carregando dados do banco...</p>
+        <div class="panel" style="max-height: 400px; overflow-y: auto;">
+            <!-- Cabeçalho com Contador e Resumo -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                <h3 class="panel-title" style="margin: 0;">Cédulas Encontradas (<span id="contador-pesquisa">0</span>)</h3>
+                <div id="resumo-pesquisa" style="font-size: 13px; color: #aaa; background: #2a2a2a; padding: 5px 10px; border-radius: 5px;">
+                    <!-- Preenchido via JavaScript -->
                 </div>
-            </div> <!-- FECHA O PAINEL DA LISTA -->
+            </div>
+
+            <div id="lista-pesquisa" style="display: flex; flex-direction: column; gap: 10px;">
+                <p style="color: #888; text-align: center;">Carregando dados do banco...</p>
+            </div>
+        </div> <!-- FECHA O PAINEL DA LISTA --> 
 
             <!-- Gráfico em Largura Total -->
             <div class="panel" style="display: flex; flex-direction: column; text-align: center; width: 100%; max-width: 900px; margin: 0 auto;">
@@ -261,7 +359,8 @@
         let dadosNovaImportacao = null; 
         let tipoNovaImportacao = "";    
         let nomeNovoArquivo = "";       
-        let listaCompletaPesquisa = []; 
+        let listaCompletaPesquisa = [];
+        let filtroManager; 
 
                 // --- CATÁLOGO DE PAÍSES ---
         const CATALOGO_PAISES = {
@@ -918,7 +1017,20 @@
                 
                 if (data.cedulas) {
                     listaCompletaPesquisa = data.cedulas;
+                    
+                    // 1. Desenha a lista na tela
                     renderizarListaPesquisa(listaCompletaPesquisa);
+
+                    // 2. 👇 FORÇA O GRÁFICO A APARECER ASSIM QUE A PÁGINA ABRE 👇
+                    const modoPadrao = document.getElementById('filtro-agrupamento-grafico').value || 'pais_valor';
+                    atualizarGrafico(listaCompletaPesquisa, modoPadrao);
+                    // 👆 FIM DA FORÇA 👆
+
+                    // 3. Preenche os filtros (mas sem chamar o aplicarFiltros para não zerar)
+                    if (filtroManager) {
+                        filtroManager.listaOriginal = listaCompletaPesquisa;
+                        filtroManager._preencherVendedores();
+                    }
                 } else {
                     document.getElementById('lista-pesquisa').innerHTML = '<p style="color: #ff4d4d;">Erro ao carregar dados.</p>';
                 }
@@ -934,6 +1046,17 @@
             container.innerHTML = '';
             contador.innerText = cedulas.length;
 
+            // 👇 CÁLCULO DO RESUMO DE PESQUISA 👇
+            const totalUnidades = cedulas.reduce((soma, c) => soma + (c.quantidade || 1), 0);
+            const custoTotal = cedulas.reduce((soma, c) => soma + c.custo_final, 0);
+            
+            const resumoElement = document.getElementById('resumo-pesquisa');
+            if (resumoElement) {
+                const valorFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(custoTotal);
+                resumoElement.innerHTML = `📦 <b>${totalUnidades}</b> cédulas | 💰 Total: <b style="color: var(--gold-accent);">${valorFormatado}</b>`;
+            }
+            // 👆 FIM DO CÁLCULO 👆
+
             if (cedulas.length === 0) {
                 container.innerHTML = '<p style="color: #888; text-align: center;">Nenhuma cédula encontrada.</p>';
                 return;
@@ -942,6 +1065,9 @@
             cedulas.forEach(c => {
                 const valorFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(c.custo_final);
                 
+                // 👇 BUSCA A BANDEIRA USANDO A FUNÇÃO EXISTENTE 👇
+                const urlBandeira = obterCodigoBandeira(c.pais);
+
                 const card = document.createElement('div');
                 card.style.background = '#2a2a2a';
                 card.style.borderRadius = '8px';
@@ -951,16 +1077,22 @@
                 card.style.justifyContent = 'space-between';
                 card.style.alignItems = 'center';
 
-                // ADICIONAMOS O BOTÃO DE EXCLUIR AQUI
+                // 👇 NOVO LAYOUT COM A IMAGEM DA BANDEIRA 👇
                 card.innerHTML = `
-                    <div style="flex: 1;">
-                        <div style="font-weight: bold; font-size: 14px; color: #fff;">
-                            ${c.pais} - ${c.descricao} ${c.catalogo ? '- ' + c.catalogo : ''}
-                        </div>
-                        <div style="font-size: 11px; color: #888; margin-top: 5px;">
-                            📅 ${c.data || 'Sem data'} | 🏷️ Lote: ${c.ref_lote || '-'} | 👤 ${c.vendedor} | 📦 ${c.origem}
+                    <div style="display: flex; align-items: center; flex: 1; gap: 15px;">
+                        
+                        <img src="${urlBandeira}" style="width: 40px; height: auto; border-radius: 3px; border: 1px solid #444; box-shadow: 0 2px 4px rgba(0,0,0,0.5);" alt="${c.pais}">
+                        
+                        <div>
+                            <div style="font-weight: bold; font-size: 14px; color: #fff;">
+                                ${c.pais} - ${c.descricao} ${c.catalogo ? '- ' + c.catalogo : ''}
+                            </div>
+                            <div style="font-size: 11px; color: #888; margin-top: 5px;">
+                                📅 ${c.data || 'Sem data'} | 🏷️ Lote: ${c.ref_lote || '-'} | 👤 ${c.vendedor} | 📦 ${c.origem}
+                            </div>
                         </div>
                     </div>
+                    
                     <div style="text-align: right; margin-right: 15px;">
                         <div style="font-size: 11px; color: #888; margin-bottom: 3px;">Custo Final (com Frete)</div>
                         <div style="font-weight: bold; font-size: 16px; color: var(--gold-accent);">${valorFormatado}</div>
@@ -974,7 +1106,7 @@
                 
                 container.appendChild(card);
             });
-            atualizarGrafico(cedulas);       
+            // A atualização do gráfico agora é feita apenas no FiltroManager       
         }
 
         let meuGrafico = null;
@@ -1091,34 +1223,54 @@
             }
         };
 
-        function atualizarGrafico(cedulas) {
-            const dadosPorPais = {};
+        function atualizarGrafico(cedulas, modoGrafico = 'pais_valor') {
+            const dadosAgrupados = {};
             
-            // 1. Agrupa os dados: Quantidade e Custo Total por País
+            const agruparPor = modoGrafico.includes('vendedor') ? 'vendedor' : 'pais';
+            const metrica = modoGrafico.includes('_qtd') ? 'quantidade' : 'custo';
+
             cedulas.forEach(c => {
-                if (!dadosPorPais[c.pais]) {
-                    dadosPorPais[c.pais] = { custo: 0, quantidade: 0 };
+                let chave = c[agruparPor];
+                
+                if (!dadosAgrupados[chave]) {
+                    dadosAgrupados[chave] = { custo: 0, quantidade: 0 };
                 }
-                dadosPorPais[c.pais].custo += c.custo_final;
-                // Se o seu backend retorna a 'quantidade', use-a. Senão, conte 1 por linha.
-                dadosPorPais[c.pais].quantidade += (c.quantidade || 1); 
+                dadosAgrupados[chave].custo += c.custo_final;
+                dadosAgrupados[chave].quantidade += (c.quantidade || 1); 
             });
 
-            // 2. Transforma em array e ordena pelo maior custo
-            const paisesOrdenados = Object.keys(dadosPorPais).sort((a, b) => {
-                return dadosPorPais[b].custo - dadosPorPais[a].custo;
+            const itensOrdenados = Object.keys(dadosAgrupados).sort((a, b) => {
+                return dadosAgrupados[b][metrica] - dadosAgrupados[a][metrica];
             });
 
-            const labels = paisesOrdenados;
-            const valoresCusto = paisesOrdenados.map(p => dadosPorPais[p].custo);
-            const valoresQtd = paisesOrdenados.map(p => dadosPorPais[p].quantidade);
+            const labels = itensOrdenados.map(nome => {
+                if (agruparPor === 'vendedor') {
+                    const palavras = nome.split(' ');
+                    if (palavras.length > 1) {
+                        return palavras.filter(p => p.length > 2).map(p => p[0]).join('').toUpperCase();
+                    }
+                    return nome.substring(0, 3).toUpperCase();
+                }
+                return nome;
+            });
+
+            const valores = itensOrdenados.map(p => dadosAgrupados[p][metrica]);
+            const valoresSecundarios = itensOrdenados.map(p => agruparPor === 'pais' ? dadosAgrupados[p].quantidade : dadosAgrupados[p].custo);
+
+            let tituloGrafico = "";
+            if (agruparPor === 'vendedor') tituloGrafico = `📊 Ranking de Vendedores (${metrica === 'quantidade' ? 'Cédulas' : 'R$'})`;
+            else tituloGrafico = `📊 Ranking de Países (${metrica === 'quantidade' ? 'Cédulas' : 'R$'})`;
+            
+            const h3Grafico = document.querySelector('#container-grafico').previousElementSibling;
+            if(h3Grafico && h3Grafico.classList.contains('panel-title')) {
+                h3Grafico.innerText = tituloGrafico;
+            }
 
             if (meuGrafico) meuGrafico.destroy();
+            for (let key in cacheBandeiras) { delete cacheBandeiras[key]; }
 
             const ctx = document.getElementById('grafico-paises').getContext('2d');
-            
-            // Ajusta a altura do container dinamicamente para caber todas as barras
-            const alturaNecessaria = Math.max(500, paisesOrdenados.length * 40);
+            const alturaNecessaria = Math.max(500, itensOrdenados.length * 40);
             document.getElementById('container-grafico').style.height = `${alturaNecessaria}px`;
 
             meuGrafico = new Chart(ctx, {
@@ -1126,89 +1278,67 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Custo Total (R$)',
-                        data: valoresCusto,
+                        label: metrica === 'quantidade' ? 'Qtd Cédulas' : 'Custo Total (R$)',
+                        data: valores,
                         backgroundColor: 'rgba(241, 196, 15, 0.7)',
                         borderColor: 'rgba(241, 196, 15, 1)',
                         borderWidth: 1,
                         borderRadius: 4,
-                        // Dados extras para o tooltip (hover)
-                        _quantidades: valoresQtd
+                        _dadosSecundarios: valoresSecundarios,
+                        _metrica: metrica,
+                        _nomesOriginais: itensOrdenados
                     }]
                 },
                 options: {
-                    indexAxis: 'y', // 👈 ISSO TRANSFORMA EM BARRAS HORIZONTAIS
+                    indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
                     animation: false,
-                    layout: {
-                        padding: { left: 40 } // 👈 Aumentei o espaço à esquerda para caber a bandeira maior
-                    },
+                    layout: { padding: { left: 40 } },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            // Customiza o tooltip (hover)
+                            displayColors: false,
                             callbacks: {
                                 title: function(context) {
-                                    return context[0].label; // Nome do país
+                                    return context[0].dataset._nomesOriginais[context[0].dataIndex]; 
                                 },
                                 label: function(context) {
-                                    const valor = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.raw);
-                                    const qtd = context.dataset._quantidades[context.dataIndex];               
-                                    return [`💰 Custo c/ Frete: ${valor}`, `🪙 Cédulas: ${qtd} un.`];
+                                    const item = context;
+                                    const index = item.dataIndex;
+                                    const metrica = item.dataset._metrica;
+                                    
+                                    const nomeOriginal = item.dataset._nomesOriginais[index];
+                                    const dadosDoItem = dadosAgrupados[nomeOriginal];
+                                    
+                                    const valorFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(dadosDoItem.custo);
+                                    const qtdFmt = new Intl.NumberFormat('pt-BR').format(dadosDoItem.quantidade);
+
+                                    if (metrica === 'quantidade') {
+                                        return [`💵 Cédulas: ${qtdFmt} un.`, `💰 Custo Total: ${valorFmt}`];
+                                    } else {
+                                        return [`💰 Custo: ${valorFmt}`, `💵 Cédulas: ${qtdFmt} un.`];
+                                    }
                                 }
                             },
-                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
                             titleFont: { size: 14, weight: 'bold' },
                             bodyFont: { size: 13 },
-                            padding: 10
+                            padding: 12,
                         }
                     },
                     scales: {
-                        x: { 
-                            beginAtZero: true, 
-                            ticks: { color: '#888' }, 
-                            grid: { color: '#333' } 
-                        },
+                        x: { beginAtZero: true, ticks: { color: '#888' }, grid: { color: '#333' } },
                         y: { 
-                            // Oculta os nomes dos países no Eixo Y (a bandeira substitui)
-                            ticks: { 
-                                color: 'transparent', 
-                                display: false 
-                            }, 
+                            ticks: { color: '#888', font: { size: 11, weight: 'bold' } }, 
                             grid: { display: false } 
                         }
                     }
                 },
-                plugins: [pluginBandeiras] // 👈 Ativa o plugin que desenha as imagens
+                plugins: modoGrafico.includes('pais') ? [pluginBandeiras] : [] 
             });
         }
-
-        // 👇 COLE A FUNÇÃO EXCLUIR LOTE AQUI 👇
-        async function excluirLote(cedula_id) {
-            mostrarConfirmacao(
-                "⚠️ Excluir Lote Completo", 
-                "Tem certeza que deseja excluir o lote INTEIRO? Todas as cédulas vinculadas a ele serão apagadas do banco.",
-                async () => {
-                    try {
-                        const res = await fetch(`/api/excluir_lote/${cedula_id}`, {
-                            method: 'DELETE'
-                        });
-                        const data = await res.json();
-                        
-                        if (res.ok) {
-                            mostrarAlerta("✅ Sucesso", data.mensagem, "sucesso");
-                            carregarDadosPesquisa(); // Recarrega a lista de pesquisa
-                        } else {
-                            mostrarAlerta("❌ Erro", data.erro, "erro");
-                        }
-                    } catch (e) {
-                        mostrarAlerta("❌ Erro", "Falha ao conectar com o servidor.", "erro");
-                    }
-                }
-            );
-        }
-        // 👆 FIM DA FUNÇÃO EXCLUIR LOTE 👆
+        
 
         function fecharModalNovoVendedor() {
             document.getElementById('modal-novo-vendedor').style.display = 'none';
@@ -1244,8 +1374,185 @@
             }
         }
        
+        class FiltroManager {
+            constructor() {
+                this.listaOriginal = [];
+                
+                this.ui = {
+                    modal: document.getElementById('modal-filtros'),
+                    btnAbrir: document.getElementById('btn-abrir-filtros'),
+                    btnFechar: document.getElementById('btn-fechar-filtros'),
+                    btnLimpar: document.getElementById('btn-limpar-filtros'),
+                    btnAplicar: document.getElementById('btn-aplicar-filtros'),
+                    inputBusca: document.getElementById('input-busca'),
+                    selectVendedor: document.getElementById('filtro-vendedor'),
+                    selectContinente: document.getElementById('filtro-continente'),
+                    selectEstado: document.getElementById('filtro-estado'),
+                    selectOrdem: document.getElementById('filtro-ordem'),
+                    inputQtdMin: document.getElementById('filtro-qtd-min'), 
+                    inputQtdMax: document.getElementById('filtro-qtd-max'),
+                    selectAgrupamento: document.getElementById('filtro-agrupamento-grafico'),
+                    selectTipoFiltro: document.getElementById('filtro-tipo'), 
+                    inputMin: document.getElementById('filtro-min'), 
+                    inputMax: document.getElementById('filtro-max'), 
+                    labelMin: document.getElementById('label-filtro-min'), 
+                    labelMax: document.getElementById('label-filtro-max')  
+                };
+
+                this._configurarEventos();
+            }
+
+            _configurarEventos() {
+                this.ui.btnAbrir.addEventListener('click', () => this.ui.modal.style.display = 'flex');
+                this.ui.btnFechar.addEventListener('click', () => this.ui.modal.style.display = 'none');
+                this.ui.btnAplicar.addEventListener('click', () => {
+                    this.ui.modal.style.display = 'none';
+                    this.aplicarFiltros();
+                });
+                this.ui.btnLimpar.addEventListener('click', () => this.limparFiltros());
+                
+                // Busca em tempo real ao digitar no input principal
+                this.ui.inputBusca.addEventListener('input', () => this.aplicarFiltros());
+
+                // 👇 NOVO EVENTO: Quando mudar o tipo (Qtd ou Custo), atualiza os textos
+                this.ui.selectTipoFiltro.addEventListener('change', () => {
+                    this._atualizarLabelsFiltro();
+                });
+            }
+
+            // 👇 NOVO MÉTODO: Atualiza as labels de Mín/Máx baseado na escolha
+            _atualizarLabelsFiltro() {
+                if (this.ui.selectTipoFiltro.value === 'custo') {
+                    this.ui.labelMin.innerText = 'Custo Mínimo (R$):';
+                    this.ui.labelMax.innerText = 'Custo Máximo (R$):';
+                    this.ui.inputMin.placeholder = 'Ex: 50.00';
+                    this.ui.inputMax.placeholder = 'Ex: 500.00';
+                } else if (this.ui.selectTipoFiltro.value === 'ano') { 
+                    this.ui.labelMin.innerText = 'Ano Mínimo:';
+                    this.ui.labelMax.innerText = 'Ano Máximo:';
+                    this.ui.inputMin.placeholder = 'Ex: 1900';
+                    this.ui.inputMax.placeholder = 'Ex: 2024';
+                } else {
+                    this.ui.labelMin.innerText = 'Qtd Mínima (un):';
+                    this.ui.labelMax.innerText = 'Qtd Máxima (un):';
+                    this.ui.inputMin.placeholder = 'Ex: 1';
+                    this.ui.inputMax.placeholder = 'Ex: 10';
+                }
+            }
+
+            atualizarDados(dados) {
+                this.listaOriginal = dados;
+                this._preencherVendedores();
+                this.aplicarFiltros();
+            }
+
+            _preencherVendedores() {
+                const vendedores = [...new Set(this.listaOriginal.map(c => c.vendedor))].sort();
+                this.ui.selectVendedor.innerHTML = '<option value="">Todos os Vendedores</option>';
+                vendedores.forEach(v => {
+                    if(v) this.ui.selectVendedor.innerHTML += `<option value="${v}">${v}</option>`;
+                });
+            }
+
+            limparFiltros() {
+                this.ui.selectVendedor.value = '';
+                this.ui.selectContinente.value = '';
+                this.ui.selectEstado.value = '';
+                this.ui.selectTipoFiltro.value = 'quantidade'; // Reseta para o padrão
+                this.ui.inputMin.value = ''; 
+                this.ui.inputMax.value = ''; 
+                this.ui.selectOrdem.value = 'recente';
+                this.ui.inputBusca.value = '';
+                
+                this._atualizarLabelsFiltro(); // Atualiza as labels para o padrão
+                this.aplicarFiltros();
+            }
+
+            _normalizar(texto) {
+                return (texto || "").toString().normalize('NFD').replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            }
+
+            aplicarFiltros() {
+                const termo = this.ui.inputBusca.value;
+                const vendedor = this.ui.selectVendedor.value;
+                const continente = this.ui.selectContinente.value;
+                const estado = this.ui.selectEstado.value;
+                const ordem = this.ui.selectOrdem.value;
+                const tipoFiltro = this.ui.selectTipoFiltro.value;
+                const valorMin = parseFloat(this.ui.inputMin.value) || 0; 
+                const valorMax = parseFloat(this.ui.inputMax.value) || Infinity; 
+
+                const palavras = this._normalizar(termo).split(' ').filter(p => p.length > 0);
+
+                let filtrados = this.listaOriginal.filter(c => {
+                    // Filtros Básicos
+                    if (vendedor && c.vendedor !== vendedor) return false;
+                    if (estado && c.estado !== estado) return false;
+                    
+                    if (continente) {
+                        const paisesDoContinente = Object.keys(CATALOGO_PAISES[continente] || {}).map(p => this._normalizar(p));
+                        if (!paisesDoContinente.includes(this._normalizar(c.pais))) return false;
+                    }
+                    
+                    if (palavras.length > 0) {
+                        const textoCedula = this._normalizar(`${c.pais} ${c.vendedor} ${c.descricao} ${c.catalogo} ${c.ano} ${c.estado}`);
+                        if (!palavras.every(p => textoCedula.includes(p))) return false;
+                    }
+                    return true;
+                });
+
+                // Filtro Dinâmico
+                if (tipoFiltro === 'quantidade') {
+                    // Se for quantidade, calcula o total de cada país
+                    const somaPorPais = {};
+                    filtrados.forEach(c => {
+                        if (!somaPorPais[c.pais]) somaPorPais[c.pais] = 0;
+                        somaPorPais[c.pais] += (c.quantidade || 1);
+                    });
+
+                    // Filtra apenas os países que estão dentro do limite
+                    filtrados = filtrados.filter(c => {
+                        return somaPorPais[c.pais] >= valorMin && somaPorPais[c.pais] <= valorMax;
+                    });
+                } else {
+                    // Filtro por Custo ou Ano (Linha a Linha)
+                    filtrados = filtrados.filter(c => {
+                        let valorParaComparar = 0;
+                        if (tipoFiltro === 'custo') {
+                            valorParaComparar = c.custo_final;
+                        } else if (tipoFiltro === 'ano') { 
+                            const anoStr = c.ano ? String(c.ano) : "0";
+                            const apenasNumeros = anoStr.replace(/\D/g, ""); 
+                            valorParaComparar = apenasNumeros ? parseInt(apenasNumeros.substring(0, 4)) : 0;
+                        }
+                        return valorParaComparar >= valorMin && valorParaComparar <= valorMax;
+                    });
+                }
+
+                // Ordenação
+                filtrados.sort((a, b) => {
+                    if (ordem === 'valor_maior') return b.custo_final - a.custo_final;
+                    if (ordem === 'valor_menor') return a.custo_final - b.custo_final;
+                    
+                    const dataA = a.data ? a.data.split('/').reverse().join('') : '0';
+                    const dataB = b.data ? b.data.split('/').reverse().join('') : '0';
+                    
+                    if (ordem === 'antigo') return dataA.localeCompare(dataB);
+                    return dataB.localeCompare(dataA);
+                });
+
+                renderizarListaPesquisa(filtrados);
+
+                const modoGrafico = this.ui.selectAgrupamento.value;
+                atualizarGrafico(filtrados, modoGrafico); 
+            }
+        }
         document.addEventListener('DOMContentLoaded', () => {
+            // Inicializa a classe de filtros
+            filtroManager = new FiltroManager(); 
+            // Carrega os vendedores e JÁ PUXA OS DADOS E DESENHA O GRÁFICO
             carregarVendedoresDoBanco();
+            carregarDadosPesquisa(); 
         });
     </script>
 </body>

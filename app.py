@@ -404,6 +404,7 @@ def create_app():
                     'id': r.id, 
                     'lote_id': r.lote_id,
                     'pais': r.pais, 
+                    'ano': r.ano,
                     'descricao': f"{r.valor_facial} {r.ano}".strip(),
                     'catalogo': r.catalogo, 
                     'estado': r.estado, 
