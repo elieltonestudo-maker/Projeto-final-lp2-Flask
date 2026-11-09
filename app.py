@@ -5,6 +5,7 @@ from dicionario import traduzir_estado, ESTADOS_CONSERVACAO
 from services.pdf_processor import ProcessadorPDF
 from services.exportadores import ExportadorDados
 from services.text_processor import ProcessadorTexto
+from services.lote_service import LoteService
 
 
 # --- FÁBRICA DA APLICAÇÃO FLASK ---
@@ -54,84 +55,8 @@ def create_app():
     @app.route('/salvar_lote', methods=['POST'])
     def salvar_lote():
         dados = request.get_json()
-        
-        if not dados:
-            return jsonify({'erro': 'Nenhum dado recebido'}), 400
-            
-        try:
-            nome_vendedor = dados.get('vendedor', 'Vendedor Desconhecido')
-            vendedor = Vendedor.query.filter_by(nome=nome_vendedor).first()
-            if not vendedor:
-                vendedor = Vendedor(nome=nome_vendedor)
-                db.session.add(vendedor)
-                db.session.flush()
-
-            # --- TRAVA DE SEGURANÇA (ANTI-DUPLICIDADE) ---
-            # Verifica se já existe um lote com o mesmo Vendedor, Data e Valor Total
-            ref_lote_para_verificar = ""
-            data_compra_para_verificar = ""
-            
-            if dados.get('cedulas') and len(dados['cedulas']) > 0:
-                ref_lote_para_verificar = dados['cedulas'][0].get('ref_lote', '')
-                data_compra_para_verificar = dados['cedulas'][0].get('data', '')
-            
-            # Verifica duplicidade por Ref. Lote (se preenchida)
-            if ref_lote_para_verificar:
-                lote_existente = Lote.query.filter_by(
-                    vendedor_id=vendedor.id, 
-                ).join(Cedula).filter(Cedula.ref_lote == ref_lote_para_verificar).first()
-
-                if lote_existente:
-                    return jsonify({'erro': f'⚠️ Este lote (Ref: {ref_lote_para_verificar}) já foi cadastrado para o vendedor {nome_vendedor}!'}), 400
-            
-            # Se não tiver Ref. Lote, verifica duplicidade por Data + Valor Total do Lote
-            elif data_compra_para_verificar:
-
-                total_cedulas_novo = sum(float(c.get('martelo', 0)) * int(c.get('quantidade', 1)) for c in dados['cedulas'])
-                
-                # Busca lotes do mesmo vendedor e mesma data
-                lotes_existentes = Lote.query.filter_by(
-                    vendedor_id=vendedor.id
-                ).join(Cedula).filter(Cedula.data_compra == data_compra_para_verificar).all()
-                
-                for lote_ex in lotes_existentes:
-                    total_cedulas_existente = sum(c.martelo * c.quantidade for c in lote_ex.cedulas)
-                    if abs(total_cedulas_existente - total_cedulas_novo) < 0.01: # Compara valores
-                        return jsonify({'erro': f'⚠️ Já existe um lote com este mesmo vendedor ({nome_vendedor}), data ({data_compra_para_verificar}) e valor total ({total_cedulas_novo:.2f})!'}), 400
-            # ---------------------------------------------
-
-            novo_lote = Lote(
-                vendedor_id=vendedor.id,
-                tipo=dados.get('tipo', 'Leilão Oficial'),
-                origem=dados.get('origem', 'Leilão Oficial'),
-                frete=float(dados.get('frete', 0.0)),
-                custos_extras=float(dados.get('custos_extras', 0.0))
-            )
-            db.session.add(novo_lote)
-            db.session.flush()
-
-            for cedula_data in dados.get('cedulas', []):
-                nova_cedula = Cedula(
-                    lote_id=novo_lote.id,
-                    pais=cedula_data.get('pais', ''),
-                    valor_facial=cedula_data.get('descricao', ''),
-                    ano=cedula_data.get('ano', ''),
-                    catalogo=cedula_data.get('codigo', ''),
-                    estado=cedula_data.get('estado', 'R'),
-                    quantidade=int(cedula_data.get('quantidade', 1)),
-                    data_compra=cedula_data.get('data', ''),
-                    ref_lote=cedula_data.get('ref_lote', ''),
-                    martelo=float(cedula_data.get('martelo', 0.0)),
-                    taxa_leilao=float(cedula_data.get('taxa_linha', 0.0))
-                )
-                db.session.add(nova_cedula)
-
-            db.session.commit()
-            return jsonify({'mensagem': 'Lote salvo com sucesso!'}), 200
-
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'erro': str(e)}), 500
+        resultado, status = LoteService.salvar(dados)
+        return jsonify(resultado), status
 
     # --- ROTAS DA API ---
     @app.route('/api/vendedores', methods=['GET'])
@@ -285,7 +210,21 @@ def create_app():
         except Exception as e:
             db.session.rollback()
             return jsonify({'erro': str(e)}), 500
-    # 👆 FIM DA NOVA ROTA 👆
+
+    @app.route('/api/excluir_cedula/<int:cedula_id>', methods=['DELETE'])
+    def api_excluir_cedula(cedula_id):
+        try:
+            cedula = Cedula.query.get(cedula_id)
+            if not cedula:
+                return jsonify({'erro': 'Cédula não encontrada'}), 404
+            
+            db.session.delete(cedula)
+            db.session.commit()
+            
+            return jsonify({'mensagem': 'Cédula excluída com sucesso!'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'erro': str(e)}), 500
 
     return app   
 

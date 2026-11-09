@@ -220,6 +220,22 @@
         </div>
     </div> 
 
+    <!-- MODAL DE ESCOLHA DE EXCLUSÃO -->
+    <div class="modal-overlay" id="modal-escolha-exclusao">
+        <div class="modal-box" style="max-width: 500px;">
+            <h3 style="color: var(--gold-accent); margin-top: 0;">🗑️ O que você deseja excluir?</h3>
+            <p style="font-size: 14px; color: #aaa; margin-bottom: 20px;">Você está prestes a excluir itens do banco de dados. Escolha uma opção:</p>
+            
+            <div class="modal-actions" style="flex-direction: column; gap: 10px;">
+                <button class="btn btn-outline" style="width: 100%;" onclick="executarExclusao('cedula')">📄 Excluir apenas esta cédula</button>
+                <button class="btn btn-danger" style="width: 100%;" onclick="executarExclusao('lote')">
+    🗑️ Excluir o lote inteiro (<span id="qtd-cedulas-lote">0</span> cédulas)
+</button>
+                <button class="btn" style="width: 100%; background: #444; color: #fff;" onclick="fecharModalEscolha()">Cancelar</button>
+            </div>
+        </div>
+    </div>   
+
     <!-- MODAL DE ALERTA CUSTOMIZADO -->
     <div class="modal-overlay" id="modal-alerta">
         <div class="modal-box" style="max-width: 450px;">
@@ -1130,7 +1146,7 @@
                         <div style="font-size: 9px; color: #666; margin-top: 2px;">Base: R$ ${c.custo_base.toFixed(2)} | Frete: R$ ${c.rateio.toFixed(2)}</div>
                     </div>
                     <div>
-                        <button class="btn btn-danger" style="padding: 8px; font-size: 12px;" onclick="excluirLote(${c.lote_id})">🗑️ Excluir Lote</button>
+                        <button class="btn btn-danger" style="padding: 8px; font-size: 12px;" onclick="excluirLote(${c.id}, ${c.lote_id})">🗑️ Excluir</button>
                     </div>
                 `;
                 
@@ -1591,7 +1607,80 @@
             window.location.href = `/api/exportar/${formato}`;
             fecharModalExportacao();
         }   
+        
+        // Variáveis para guardar o ID da cédula e do lote selecionados
+        let idCedulaParaExcluir = null;
+        let idLoteParaExcluir = null;
 
+        function excluirLote(cedula_id, lote_id) {
+            idCedulaParaExcluir = cedula_id;
+            idLoteParaExcluir = lote_id;
+            
+            // 👇 CALCULA A QUANTIDADE DE CÉDULAS DO LOTE E ATUALIZA O BOTÃO 👇
+            const cedulasDoLote = listaCompletaPesquisa.filter(c => c.lote_id === lote_id);
+            document.getElementById('qtd-cedulas-lote').innerText = cedulasDoLote.length;
+            // 👆 FIM DO CÁLCULO 👆
+            
+            document.getElementById('modal-escolha-exclusao').style.display = 'flex';
+        }
+
+        function fecharModalEscolha() {
+            document.getElementById('modal-escolha-exclusao').style.display = 'none';
+        }
+
+        function executarExclusao(tipo) {
+            fecharModalEscolha();
+            
+            if (tipo === 'cedula') {
+                // SEGUNDA CONFIRMAÇÃO: Cédula
+                mostrarConfirmacao(
+                    "⚠️ Confirmar Exclusão", 
+                    "Tem certeza que deseja excluir APENAS ESTA CÉDULA (1 unidade)? O lote continuará existindo.",
+                    async () => {
+                        try {
+                            const res = await fetch(`/api/excluir_cedula/${idCedulaParaExcluir}`, { method: 'DELETE' });
+                            const data = await res.json();
+                            if (res.ok) {
+                                mostrarAlerta("✅ Sucesso", data.mensagem, "sucesso");
+                                carregarDadosPesquisa();
+                            } else {
+                                mostrarAlerta("❌ Erro", data.erro, "erro");
+                            }
+                        } catch (e) {
+                            mostrarAlerta("❌ Erro", "Falha ao conectar com o servidor.", "erro");
+                        }
+                    }
+                );
+            } else if (tipo === 'lote') {
+                // 👇 CALCULA A QUANTIDADE PARA O SEGUNDO ALERTA 👇
+                const cedulasDoLote = listaCompletaPesquisa.filter(c => c.lote_id === idLoteParaExcluir);
+                const qtd = cedulasDoLote.length;
+                const textoAviso = qtd > 1 
+                    ? `Tem certeza que deseja excluir o LOTE INTEIRO? As ${qtd} cédulas vinculadas a ele serão apagadas permanentemente.`
+                    : `Tem certeza que deseja excluir o LOTE INTEIRO? A cédula vinculada a ele será apagada permanentemente.`;
+                // 👆 FIM DO CÁLCULO 👆
+
+                mostrarConfirmacao(
+                    "⚠️ Confirmar Exclusão", 
+                    textoAviso, // 👈 USA O TEXTO DINÂMICO AQUI
+                    async () => {
+                        try {
+                            const res = await fetch(`/api/excluir_lote/${idLoteParaExcluir}`, { method: 'DELETE' });
+                            const data = await res.json();
+                            if (res.ok) {
+                                mostrarAlerta("✅ Sucesso", data.mensagem, "sucesso");
+                                carregarDadosPesquisa();
+                            } else {
+                                mostrarAlerta("❌ Erro", data.erro, "erro");
+                            }
+                        } catch (e) {
+                            mostrarAlerta("❌ Erro", "Falha ao conectar com o servidor.", "erro");
+                        }
+                    }
+                );
+            }
+        }
+       
         document.addEventListener('DOMContentLoaded', () => {
             // Inicializa a classe de filtros
             filtroManager = new FiltroManager(); 
