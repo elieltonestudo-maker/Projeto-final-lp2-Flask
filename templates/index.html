@@ -191,6 +191,35 @@
             </div>
         </div>
     </div>
+
+   <!-- MODAL DE EXPORTAÇÃO -->
+    <div class="modal-overlay" id="modal-exportacao">
+        <div class="modal-box" style="max-width: 450px; text-align: left;">
+            <h3 style="color: var(--gold-accent); margin-top: 0;">📥 Formato de Exportação</h3>
+            <p style="font-size: 13px; color: #aaa; margin-bottom: 20px;">Escolha o formato para baixar o relatório:</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 14px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="radio" name="formato-export" value="csv" checked> 
+                    CSV (planilha Excel)
+                </label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="radio" name="formato-export" value="json"> 
+                    JSON (dados)
+                </label>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="radio" name="formato-export" value="txt"> 
+                    TXT (texto)
+                </label>
+            </div>
+
+            <div class="modal-actions" style="justify-content: flex-end; margin-top: 25px;">
+                <button class="btn btn-outline" onclick="fecharModalExportacao()">Cancelar</button>
+                <button class="btn" onclick="baixarRelatorio()">Baixar Arquivo</button>
+            </div>
+        </div>
+    </div> 
+
     <!-- MODAL DE ALERTA CUSTOMIZADO -->
     <div class="modal-overlay" id="modal-alerta">
         <div class="modal-box" style="max-width: 450px;">
@@ -321,6 +350,7 @@
                 <label style="margin: 0; color: var(--text-color);">Buscar:</label>
                 <input type="text" id="input-busca" placeholder="Filtre por país, vendedor ou descrição..." style="width: 450px;">
                 <button class="btn btn-outline" id="btn-abrir-filtros" style="white-space: nowrap;">⚙️ Filtros Avançados</button>
+                <button class="btn btn-outline" onclick="abrirModalExportacao()" style="white-space: nowrap;">📥 Exportar Relatório</button>            
             </div>
         </div> <!-- FECHA O PAINEL DE BUSCA -->
 
@@ -1547,6 +1577,21 @@
                 atualizarGrafico(filtrados, modoGrafico); 
             }
         }
+        
+        function abrirModalExportacao() {
+            document.getElementById('modal-exportacao').style.display = 'flex';
+        }
+
+        function fecharModalExportacao() {
+            document.getElementById('modal-exportacao').style.display = 'none';
+        }
+
+        function baixarRelatorio() {
+            const formato = document.querySelector('input[name="formato-export"]:checked').value;
+            window.location.href = `/api/exportar/${formato}`;
+            fecharModalExportacao();
+        }   
+
         document.addEventListener('DOMContentLoaded', () => {
             // Inicializa a classe de filtros
             filtroManager = new FiltroManager(); 
