@@ -1327,7 +1327,9 @@
                         <div style="font-size: 11px; color: #888; margin-bottom: 3px;">Custo Final (com Frete)</div>
                         <div class="valor-formatado" style="font-weight: bold; font-size: 16px; color: var(--gold-accent);">${valorFormatado}</div>
                         <div style="font-size: 10px; color: #aaa;">Estado: ${c.estado} | Qtd: ${c.quantidade}</div>
-                        <div style="font-size: 9px; color: #666; margin-top: 2px;">Base: R$ ${c.custo_base.toFixed(2)} | Frete: R$ ${c.rateio.toFixed(2)}</div>
+                        <div class="detalhe-custo" style="font-size: 9px; color: #666; margin-top: 2px;">
+    Base: R$ <span class="valor-base">${c.custo_base.toFixed(2)}</span> | Frete: R$ <span class="valor-frete">${c.rateio.toFixed(2)}</span>
+</div>
                     </div>
                     <div>
                         <button class="btn btn-danger" style="padding: 8px; font-size: 12px;" onclick="excluirLote(${c.id}, ${c.lote_id})">🗑️ Excluir</button>
@@ -1774,7 +1776,8 @@
                 renderizarListaPesquisa(filtrados);
 
                 const modoGrafico = this.ui.selectAgrupamento.value;
-                atualizarGrafico(filtrados, modoGrafico); 
+                atualizarGrafico(filtrados, modoGrafico);
+                if (valoresOcultos) toggleValores(); // Se o olhinho estava ativo, esconde de novo após filtrar 
             }
         }
         
@@ -1972,9 +1975,9 @@
         let valoresOcultos = false;
         function toggleValores() {
             valoresOcultos = !valoresOcultos;
-            const botao = document.getElementById('btn-ocultar-valores');
-            botao.innerText = valoresOcultos ? '🙈' : '👁️';
+            document.getElementById('btn-ocultar-valores').innerText = valoresOcultos ? '🙈' : '👁️';
 
+            // 1. Esconde os valores da tabela de cadastro
             const seletoresTabela = ['.td-subtotal', '.td-rateio', '.td-custo-final', '#total-cedulas', '#total-frete', '#total-geral'];
             seletoresTabela.forEach(sel => {
                 document.querySelectorAll(sel).forEach(el => {
@@ -1987,16 +1990,47 @@
                 });
             });
 
+            // 2. Esconde os cards de pesquisa
             document.querySelectorAll('.valor-formatado').forEach(el => {
                 if (valoresOcultos) {
                     el.setAttribute('data-valor-original', el.innerText);
-                    el.innerText = '••••••';
+                    el.innerText = 'R$ ---';
                 } else {
                     el.innerText = el.getAttribute('data-valor-original') || el.innerText;
                 }
             });
-        }
 
+            document.querySelectorAll('.valor-base, .valor-frete').forEach(el => {
+                if (valoresOcultos) {
+                    el.setAttribute('data-valor-original', el.innerText);
+                    el.innerText = '---';
+                } else {
+                    el.innerText = el.getAttribute('data-valor-original') || el.innerText;
+                }
+            });
+
+            // 3. A SOLUÇÃO DO TOPO: Esconde apenas o valor (R$), mantendo a quantidade de cédulas.
+            const resumoPesquisa = document.getElementById('resumo-pesquisa');
+            if (resumoPesquisa) {
+                if (valoresOcultos) {
+                    // Pega o texto atual (ex: "45 cédulas | Total: R$ 4.070,66")
+                    const textoAtual = resumoPesquisa.innerText;
+                    // Extrai apenas o número de cédulas usando Regex
+                    const matchQtd = textoAtual.match(/(\d+)\s*cédulas/);
+                    const qtd = matchQtd ? matchQtd[1] : '0';
+                    
+                    // Reescreve o HTML com a quantidade visível, mas o valor escondido
+                    resumoPesquisa.innerHTML = `📦 <b>${qtd}</b> cédulas | 💰 Total: <b style="color: var(--gold-accent);">R$ ---</b>`;
+                } else {
+                    // Se for mostrar, apenas chama a função original que recria o HTML com os valores reais
+                    const totalUnidades = listaCompletaPesquisa.reduce((soma, c) => soma + (c.quantidade || 1), 0);
+                    const custoTotal = listaCompletaPesquisa.reduce((soma, c) => soma + c.custo_final, 0);
+                    const valorFormatado = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(custoTotal);
+                    
+                    resumoPesquisa.innerHTML = `📦 <b>${totalUnidades}</b> cédulas | 💰 Total: <b style="color: var(--gold-accent);">${valorFormatado}</b>`;
+                }
+            }
+        }
         document.addEventListener('DOMContentLoaded', () => {
             // Inicializa a classe de filtros
             filtroManager = new FiltroManager(); 
