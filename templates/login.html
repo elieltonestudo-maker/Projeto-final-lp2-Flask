@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Login - Sistema de Cédulas</title>
+    <title>Login - Central de Aquisições</title>
     <style>
         :root { 
             --bg-color: #121212; 
@@ -32,12 +32,33 @@
             max-width: 400px; 
             text-align: center;
         }
+        
+        .login-logo {
+            width: 180px;      /* Aumente a largura (tente 180px, 200px ou 220px) */
+            height: auto;      /* Mude de 90px para auto! Isso mantém a proporção perfeita */
+            object-fit: contain;
+            margin-bottom: 25px;
+            filter: drop-shadow(0 0 10px rgba(241, 196, 15, 0.3)); 
+            /* O SEGREDO ESTÁ AQUI: */
+            mix-blend-mode: screen; 
+        }
+
         h1 { 
             color: var(--gold-accent); 
             margin-top: 0; 
             font-size: 24px; 
-            margin-bottom: 20px; 
+            margin-bottom: 8px; 
+            letter-spacing: 1px;
+            text-transform: uppercase;
         }
+        
+        .subtitulo {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 25px;
+            letter-spacing: 0.5px;
+        }
+
         input {
             width: 100%; 
             padding: 12px; 
@@ -83,7 +104,11 @@
 </head>
 <body>
     <div class="login-box">
-        <h1>🪙 Sistema de Cédulas</h1>
+        <!-- 👇 COLOQUE O CAMINHO DA SUA IMAGEM AQUI 👇 -->
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="login-logo">
+        
+        <h1>Central de Aquisições</h1>
+        <p class="subtitulo">Gestão de Compras e Acervo</p>
         
         {% if erro %}
             <div class="erro">{{ erro }}</div>
