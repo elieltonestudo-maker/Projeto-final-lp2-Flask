@@ -192,6 +192,34 @@
         </div>
     </div>
 
+    <!-- MODAL DE RESTAURAR BACKUP -->
+    <div class="modal-overlay" id="modal-restaurar">
+        <div class="modal-box" style="max-width: 550px; text-align: left;">
+            <h3 style="color: var(--gold-accent); margin-top: 0;">📤 Restaurar Backup</h3>
+            
+            <!-- Passo a Passo -->
+            <div style="background: #2a2a2a; padding: 15px; border-radius: 5px; border-left: 4px solid var(--gold-accent); margin-bottom: 20px;">
+                <p style="font-size: 13px; color: #ccc; margin-top: 0; font-weight: bold;">Como funciona a restauração?</p>
+                <ol style="font-size: 12px; color: #aaa; margin-bottom: 0; padding-left: 20px; line-height: 1.6;">
+                    <li>Selecione o arquivo <strong>.db</strong> e clique em "Enviar".</li>
+                    <li>O sistema vai validar e salvar o arquivo <strong>banco_restaurado.db</strong> na raiz do projeto.</li>
+                    <li>Feche o sistema (Ctrl+C no terminal).</li>
+                    <li>Vá na pasta <strong>instance</strong>, apague o <strong>cedulas.db</strong> atual e mova o <strong>banco_restaurado.db</strong> para lá.</li>
+                    <li>Renomeie o arquivo novo para <strong>cedulas.db</strong> e abra o sistema novamente.</li>
+                </ol>
+            </div>
+            
+            <form id="form-restaurar" onsubmit="event.preventDefault(); executarRestauracao();">
+                <input type="file" id="input-arquivo-db" accept=".db" required style="width: 100%; margin-bottom: 20px; padding: 10px; background: var(--input-bg); border: 1px solid var(--border-color); color: white; border-radius: 5px;">
+                
+                <div class="modal-actions" style="justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="fecharModalRestaurar()">Cancelar</button>
+                    <button type="submit" class="btn" style="background-color: #ff4d4d;">Enviar Backup</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
    <!-- MODAL DE EXPORTAÇÃO -->
     <div class="modal-overlay" id="modal-exportacao">
         <div class="modal-box" style="max-width: 450px; text-align: left;">
@@ -263,6 +291,21 @@
         </div>
     </div>
 
+    <!-- MODAL DE EDITAR VENDEDOR -->
+    <div class="modal-overlay" id="modal-editar-vendedor">
+        <div class="modal-box" style="max-width: 450px;">
+            <h3 style="color: var(--gold-accent); margin-top: 0;">✏️ Editar Vendedor</h3>
+            
+            <input type="hidden" id="input-edit-vendedor-id">
+            <input type="text" id="input-edit-vendedor-nome" style="width: 100%; padding: 12px; font-size: 14px; background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 5px; outline: none;">
+            
+            <div class="modal-actions" style="justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="fecharModalEditarVendedor()">Cancelar</button>
+                <button class="btn" onclick="salvarEdicaoVendedor()">Salvar Alterações</button>
+            </div>
+        </div>
+    </div>    
+    
     <!-- CABEÇALHO COM MENU DE CONFIGURAÇÕES -->
     <div class="header" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 30px;">
         <div style="font-size: 24px; font-weight: bold; color: var(--gold-accent);">Aquisições</div>
@@ -279,6 +322,7 @@
                 
                 <div id="menu-config" style="display: none; position: absolute; right: 0; top: 110%; background: var(--panel-bg); border: 1px solid var(--gold-accent); border-radius: 5px; min-width: 220px; z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.5);">
                     <button onclick="fazerBackup()" style="display: block; width: 100%; text-align: left; padding: 12px; background: none; border: none; color: var(--text-color); cursor: pointer; border-bottom: 1px solid var(--border-color);">💾 Fazer Backup</button>
+                    <button onclick="abrirModalRestaurar()" style="display: block; width: 100%; text-align: left; padding: 12px; background: none; border: none; color: var(--text-color); cursor: pointer; border-bottom: 1px solid var(--border-color);">📤 Restaurar Backup</button>
                     <button onclick="atualizarBandeiras()" style="display: block; width: 100%; text-align: left; padding: 12px; background: none; border: none; color: var(--text-color); cursor: pointer; border-bottom: 1px solid var(--border-color);">🔄 Atualizar Bandeiras</button>
                     <button onclick="sairSistema()" style="display: block; width: 100%; text-align: left; padding: 12px; background: none; border: none; color: #ff4d4d; cursor: pointer;">🚪 Sair</button>
                 </div>
@@ -517,8 +561,7 @@
             return "un"; // Bandeira da ONU
         }
 
-        // --- LÓGICA DO DROPDOWN DE VENDEDORES (BUSCA NO BANCO) ---
-
+      
         // --- LÓGICA DO DROPDOWN DE VENDEDORES (BUSCA NO BANCO) ---
         let listaVendedores = []; 
 
@@ -527,10 +570,81 @@
                 const res = await fetch('/api/vendedores');
                 const data = await res.json();
                 if (data.vendedores) {
-                    listaVendedores = data.vendedores.map(v => v.nome);
+                    // Aqui salvamos a lista de OBJETOS {id, nome}, e não apenas strings
+                    listaVendedores = data.vendedores; 
                 }
             } catch (e) { console.error("Erro ao buscar vendedores:", e); }
         }
+
+        // --- EDIÇÃO E EXCLUSÃO DE VENDEDOR ---
+        function abrirModalEditarVendedor(id, nome) {
+            document.getElementById('input-edit-vendedor-id').value = id;
+            document.getElementById('input-edit-vendedor-nome').value = nome;
+            document.getElementById('dropdown-vendedores').style.display = 'none';
+            document.getElementById('modal-editar-vendedor').style.display = 'flex';
+        }
+
+        function fecharModalEditarVendedor() {
+            document.getElementById('modal-editar-vendedor').style.display = 'none';
+        }
+
+        async function salvarEdicaoVendedor() {
+            const id = document.getElementById('input-edit-vendedor-id').value;
+            const novoNome = document.getElementById('input-edit-vendedor-nome').value.trim();
+
+            if (!novoNome) return mostrarAlerta("⚠️ Aviso", "O nome não pode estar vazio.", "aviso");
+
+            try {
+                const res = await fetch(`/api/editar_vendedor/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome: novoNome })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    fecharModalEditarVendedor();
+                    mostrarAlerta("✅ Sucesso", data.mensagem, "sucesso");
+                    carregarVendedoresDoBanco(); // Recarrega a lista no dropdown
+                    
+                    // Se o vendedor editado era o que estava selecionado na tela, atualiza o input
+                    if (document.getElementById('vendedor-lote').value === data.nome_antigo) {
+                        document.getElementById('vendedor-lote').value = data.nome;
+                    }
+                } else {
+                    mostrarAlerta("❌ Erro", data.erro, "erro");
+                }
+            } catch (e) {
+                mostrarAlerta("❌ Erro", "Falha ao conectar com o servidor.", "erro");
+            }
+        }
+
+        function excluirVendedor(id, nome) {
+            mostrarConfirmacao(
+                "⚠️ Excluir Vendedor", 
+                `Tem certeza que deseja excluir o vendedor "${nome}"? Ele só pode ser excluído se não tiver nenhum lote cadastrado.`,
+                async () => {
+                    try {
+                        const res = await fetch(`/api/excluir_vendedor/${id}`, { method: 'DELETE' });
+                        const data = await res.json();
+                        
+                        if (res.ok) {
+                            mostrarAlerta("✅ Sucesso", data.mensagem, "sucesso");
+                            carregarVendedoresDoBanco(); // Recarrega a lista no dropdown
+                            
+                            // Se o vendedor excluído estava no input, limpa ele
+                            if (document.getElementById('vendedor-lote').value === nome) {
+                                document.getElementById('vendedor-lote').value = '';
+                            }
+                        } else {
+                            mostrarAlerta("❌ Erro", data.erro, "erro");
+                        }
+                    } catch (e) {
+                        mostrarAlerta("❌ Erro", "Falha ao conectar com o servidor.", "erro");
+                    }
+                }
+            );
+        }        
 
         function mostrarDropdownVendedores() {
             const dropdown = document.getElementById('dropdown-vendedores');
@@ -547,7 +661,8 @@
             const termo = input.value.toLowerCase();
             const dropdown = document.getElementById('dropdown-vendedores');
             
-            const filtrados = listaVendedores.filter(v => v.toLowerCase().includes(termo));
+            // Agora filtramos usando vendedor.nome, pois são objetos
+            const filtrados = listaVendedores.filter(v => v.nome.toLowerCase().includes(termo));
             renderizarDropdown(filtrados);
             dropdown.style.display = 'block';
         }
@@ -556,24 +671,72 @@
             const dropdown = document.getElementById('dropdown-vendedores');
             dropdown.innerHTML = ""; 
             
-            lista.forEach(nome => {
+            // Agora a lista recebe objetos {id, nome}
+            lista.forEach(vendedor => {
                 const item = document.createElement('div');
+                item.style.display = "flex";
+                item.style.justifyContent = "space-between"; // Empurra os botões para a direita
+                item.style.alignItems = "center";
                 item.style.padding = "10px";
-                item.style.cursor = "pointer";
-                item.style.color = "var(--text-color)";
                 item.style.borderBottom = "1px solid var(--border-color)";
-                item.innerText = nome;
+                item.style.color = "var(--text-color)";
                 
-                item.onclick = () => {
-                    document.getElementById('vendedor-lote').value = nome;
+                // 1. O Nome do Vendedor (clicável para selecionar)
+                const nomeSpan = document.createElement('span');
+                nomeSpan.innerText = vendedor.nome; 
+                nomeSpan.style.cursor = "pointer";
+                nomeSpan.style.flex = "1"; // Ocupa todo o espaço restante
+                nomeSpan.onclick = () => {
+                    document.getElementById('vendedor-lote').value = vendedor.nome;
                     dropdown.style.display = 'none';
                 };
                 
+                // 2. Container dos botões (Editar e Excluir)
+                const acoesDiv = document.createElement('div');
+                acoesDiv.style.display = "flex";
+                acoesDiv.style.gap = "15px"; // Espaço entre os botões
+                
+                // Botão Editar (Lápis)
+                const btnEditar = document.createElement('button');
+                btnEditar.innerHTML = "✏️";
+                btnEditar.style.background = "none";
+                btnEditar.style.border = "none";
+                btnEditar.style.cursor = "pointer";
+                btnEditar.style.fontSize = "16px";
+                btnEditar.title = "Editar Vendedor";
+                btnEditar.onclick = (e) => {
+                    e.stopPropagation(); // Impede que o clique feche o dropdown
+                    abrirModalEditarVendedor(vendedor.id, vendedor.nome);
+                };
+                
+                // Botão Excluir (Lixeira)
+                const btnExcluir = document.createElement('button');
+                btnExcluir.innerHTML = "🗑️";
+                btnExcluir.style.background = "none";
+                btnExcluir.style.border = "none";
+                btnExcluir.style.cursor = "pointer";
+                btnExcluir.style.fontSize = "16px";
+                btnExcluir.title = "Excluir Vendedor";
+                btnExcluir.onclick = (e) => {
+                    e.stopPropagation(); // Impede que o clique feche o dropdown
+                    excluirVendedor(vendedor.id, vendedor.nome);
+                };
+                
+                // Monta a estrutura
+                acoesDiv.appendChild(btnEditar);
+                acoesDiv.appendChild(btnExcluir);
+                
+                item.appendChild(nomeSpan);
+                item.appendChild(acoesDiv);
+                
+                // Efeito visual ao passar o mouse
                 item.onmouseover = () => item.style.background = "#333";
                 item.onmouseout = () => item.style.background = "transparent";
+                
                 dropdown.appendChild(item);
             });
 
+            // Botão de "+ Cadastrar novo vendedor..."
             const itemNovo = document.createElement('div');
             itemNovo.style.padding = "10px";
             itemNovo.style.cursor = "pointer";
@@ -1721,6 +1884,63 @@
             window.location.href = '/api/backup';
         }
 
+            // --- LÓGICA DE RESTAURAR BACKUP ---
+        function abrirModalRestaurar() {
+            document.getElementById('form-restaurar').reset();
+            document.getElementById('modal-restaurar').style.display = 'flex';
+            // Fecha o menu de configurações se estiver aberto
+            document.getElementById('menu-config').style.display = 'none';
+        }
+
+        function fecharModalRestaurar() {
+            document.getElementById('modal-restaurar').style.display = 'none';
+        }
+
+        async function executarRestauracao() {
+            const fileInput = document.getElementById('input-arquivo-db');
+            if (fileInput.files.length === 0) return mostrarAlerta("⚠️ Aviso", "Selecione um arquivo.", "aviso");
+
+            const btn = document.querySelector('#form-restaurar button[type="submit"]');
+            const txtOriginal = btn.innerHTML;
+            btn.innerHTML = '⏳ Enviando...';
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('arquivo_db', fileInput.files[0]);
+
+            try {
+                const res = await fetch('/api/restaurar_backup', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                // Se o servidor retornar erro (ex: arquivo inválido)
+                if (!res.ok) {
+                    const textoErro = await res.text();
+                    console.error("Erro do Servidor:", textoErro);
+                    throw new Error("O arquivo enviado é inválido ou ocorreu um erro no servidor.");
+                }
+
+                const data = await res.json();
+                fecharModalRestaurar();
+                
+                // Mostra a mensagem de sucesso com as instruções que o Python retornou
+                mostrarAlerta("✅ Arquivo Validado!", data.mensagem, "sucesso");
+                
+                // Recarrega os dados da tela (para garantir que está tudo atualizado)
+                setTimeout(() => { 
+                    carregarDadosPesquisa(); 
+                    carregarVendedoresDoBanco(); 
+                }, 2000);
+                
+            } catch (e) {
+                console.error(e);
+                mostrarAlerta("❌ Erro", e.message || "Falha ao conectar com o servidor.", "erro");
+            } finally {
+                btn.innerHTML = txtOriginal;
+                btn.disabled = false;
+            }
+        }
         async function atualizarBandeiras() {
             mostrarAlerta("🔄 Atualizando", "Aguarde enquanto o sistema atualiza as bandeiras...", "aviso");
             try {

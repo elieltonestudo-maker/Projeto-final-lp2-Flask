@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, jsonify, Response
 import re
 import webbrowser     
-import threading      
+import threading 
+import shutil     
 from models import db, Vendedor, Lote, Cedula
 from dicionario import traduzir_estado, ESTADOS_CONSERVACAO
 from services.pdf_processor import ProcessadorPDF
@@ -13,6 +14,7 @@ from services.relatorio_service import RelatorioService
 from services.exclusao_service import ExclusaoService
 from flask import session, redirect, url_for
 from services.auth_service import AuthService
+from services.vendedor_service import VendedorService
 
 
 
@@ -122,23 +124,19 @@ def create_app():
     @app.route('/api/adicionar_vendedor', methods=['POST'])
     def api_adicionar_vendedor():
         dados = request.get_json()
-        nome = dados.get('nome', '').strip()
-        
-        if not nome:
-            return jsonify({'erro': 'Nome não informado'}), 400
-            
-        try:
-            existente = Vendedor.query.filter_by(nome=nome).first()
-            if existente:
-                return jsonify({'mensagem': 'Vendedor já cadastrado!', 'id': existente.id}), 200
-                
-            novo_vendedor = Vendedor(nome=nome)
-            db.session.add(novo_vendedor)
-            db.session.commit()
-            return jsonify({'mensagem': 'Vendedor cadastrado!', 'id': novo_vendedor.id}), 201
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'erro': str(e)}), 500
+        resultado, status = VendedorService.adicionar(dados.get('nome', ''))
+        return jsonify(resultado), status
+
+    @app.route('/api/editar_vendedor/<int:vendedor_id>', methods=['PUT'])
+    def api_editar_vendedor(vendedor_id):
+        dados = request.get_json()
+        resultado, status = VendedorService.editar(vendedor_id, dados.get('nome', ''))
+        return jsonify(resultado), status
+
+    @app.route('/api/excluir_vendedor/<int:vendedor_id>', methods=['DELETE'])
+    def api_excluir_vendedor(vendedor_id):
+        resultado, status = VendedorService.excluir(vendedor_id)
+        return jsonify(resultado), status
 
     
     @app.route('/api/pesquisar', methods=['GET'])
@@ -223,6 +221,16 @@ def create_app():
     @app.route('/api/backup')
     def api_backup():
         return SistemaService.gerar_backup(app)
+
+    @app.route('/api/restaurar_backup', methods=['POST'])
+    def api_restaurar_backup():
+        if 'arquivo_db' not in request.files:
+            return jsonify({'erro': 'Nenhum arquivo enviado.'}), 400
+        
+        arquivo = request.files['arquivo_db']
+        resultado, status = SistemaService.restaurar_backup(arquivo)
+        return jsonify(resultado), status
+    
 
     @app.route('/api/atualizar_bandeiras', methods=['POST'])
     def api_atualizar_bandeiras():
