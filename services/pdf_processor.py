@@ -1,5 +1,6 @@
 import pdfplumber
 import re
+import os
 from dicionario import traduzir_estado, ESTADOS_CONSERVACAO
 
 class ProcessadorPDF:
@@ -14,8 +15,10 @@ class ProcessadorPDF:
                 if texto:
                     self.texto_completo += texto + "\n"
         
-        with open("debug_pdf.txt", "w", encoding="utf-8") as f:
-            f.write(self.texto_completo)
+        # Só salva o debug se a variável de ambiente estiver ligada (Opcional)
+        if os.getenv('DEBUG_PDF'):
+            with open("debug_pdf.txt", "w", encoding="utf-8") as f:
+                f.write(self.texto_completo)
         
         return self.texto_completo
 
@@ -56,11 +59,13 @@ class ProcessadorPDF:
                     ano = match_ano.group(0).replace(' ', '')
                     texto_bloco = texto_bloco.replace(match_ano.group(0), '')
 
-                match_valor = re.search(r'R\$\s*([\d,]+)', texto_bloco)
+                # CORREÇÃO DO VALOR: Agora aceita ponto de milhar e vírgula decimal
+                match_valor = re.search(r'R\$\s*([\d\.]+(?:,\d{2})?)', texto_bloco)
                 if not match_valor:
                     i += 1
                     continue
-                valor = float(match_valor.group(1).replace(',', '.'))
+                
+                valor = self._converter_valor(match_valor.group(1))
                 texto_bloco = texto_bloco.replace(match_valor.group(0), '')
 
                 match_pais = re.match(r'^([A-Za-zÀ-ÿ\s]+?)(?:\s*-|\s*\d)', texto_bloco)
@@ -70,7 +75,6 @@ class ProcessadorPDF:
                 else:
                     pais = "Desconhecido"
 
-                # Remove R$ e o valor antes de verificar o estado
                 texto_bloco = re.sub(r'R\$\s*[\d\.\,]+', '', texto_bloco)
 
                 estado = traduzir_estado(texto_bloco) or "R"
@@ -102,5 +106,18 @@ class ProcessadorPDF:
                 })
                 
             i += 1 
-
+            
         return cedulas_extraidas
+
+    def _converter_valor(self, valor_str):
+        """Blindagem para converter R$ 1.200,50 ou 120.00 corretamente"""
+        if ',' in valor_str:
+            valor_str = valor_str.replace('.', '').replace(',', '.')
+        elif '.' in valor_str:
+            partes = valor_str.split('.')
+            if len(partes[-1]) != 2:
+                valor_str = valor_str.replace('.', '')
+        try:
+            return float(valor_str)
+        except ValueError:
+            return 0.0
