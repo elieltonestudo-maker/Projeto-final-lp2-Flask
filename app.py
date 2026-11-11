@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, Response
 import re
+import os
 import webbrowser     
 import threading 
 import shutil     
@@ -16,7 +17,8 @@ from flask import session, redirect, url_for
 from services.auth_service import AuthService
 from services.vendedor_service import VendedorService
 from services.custo_service import CustoService
-
+from models import db, Vendedor, Lote, Cedula, Usuario  
+from flask import session, redirect, url_for  
 
 
 # --- FÁBRICA DA APLICAÇÃO FLASK ---
@@ -24,12 +26,21 @@ def create_app():
     app = Flask(__name__)
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cedulas.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = 'uma-chave-super-secreta-para-sessoes-2' 
+   
+    # Faz a sessão expirar se o navegador for fechado
+    app.config['SESSION_PERMANENT'] = False 
+    # Impede que o navegador use cache nas rotas (forçando a checagem de login)
+    app.config['SESSION_COOKIE_SECURE'] = False # Mude para True se for usar HTTPS
+    app.config['SESSION_COOKIE_HTTPONLY'] = True # Impede acesso via JavaScript (segurança)
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', os.urandom(24).hex())
     db.init_app(app)
-
+    
     @app.route('/')
     def index():
-        return render_template('index.html')
+        # Pega o usuário logado para saber se é admin
+        usuario_logado = Usuario.query.filter_by(username=session.get('usuario_nome')).first()
+        is_admin = usuario_logado.is_admin if usuario_logado else False
+        return render_template('index.html', is_admin=is_admin)
 
     # 👇 BLOCO DE LOGIN E LOGOUT AQUI 👇
     @app.before_request
@@ -158,6 +169,38 @@ def create_app():
         resultado, status = VendedorService.excluir(vendedor_id)
         return jsonify(resultado), status
 
+    @app.route('/api/usuarios', methods=['GET'])
+    def api_usuarios():
+        # Lista todos os usuários (incluindo a flag is_admin)
+        usuarios = Usuario.query.order_by(Usuario.username).all()
+        return jsonify({'usuarios': [
+            {'id': u.id, 'username': u.username, 'is_admin': u.is_admin} 
+            for u in usuarios
+        ]})
+
+    @app.route('/api/excluir_usuario/<int:usuario_id>', methods=['DELETE'])
+    def api_excluir_usuario(usuario_id):
+        # 1. Verifica se quem está pedindo a exclusão é o Administrador
+        usuario_logado = Usuario.query.filter_by(username=session.get('usuario_nome')).first()
+        if not usuario_logado or not usuario_logado.is_admin:
+            return jsonify({'erro': 'Acesso negado. Apenas administradores podem excluir usuários.'}), 403
+
+        # 2. Busca o usuário que se deseja excluir
+        usuario = Usuario.query.get(usuario_id)
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado.'}), 404
+            
+        # 3. Impede que o admin exclua a si mesmo por acidente
+        if usuario.username == session.get('usuario_nome'):
+            return jsonify({'erro': 'Você não pode excluir o usuário que está logado.'}), 400
+            
+        try:
+            db.session.delete(usuario)
+            db.session.commit()
+            return jsonify({'mensagem': 'Usuário excluído com sucesso!'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'erro': str(e)}), 500
     
     @app.route('/api/pesquisar', methods=['GET'])
     def api_pesquisar():
@@ -223,10 +266,19 @@ def create_app():
 
     @app.route('/api/exportar/<formato>', methods=['GET'])
     def api_exportar(formato):
-        resultado = RelatorioService.exportar(formato)
+        if formato == 'pdf':
+            # Pega os parâmetros (padrão é True se não vier nada)
+            incluir_grafico = request.args.get('grafico', 'true').lower() == 'true'
+            incluir_lista = request.args.get('lista', 'true').lower() == 'true'
+            incluir_total = request.args.get('total', 'true').lower() == 'true'
+            
+            resultado = RelatorioService.exportar(formato, incluir_grafico, incluir_lista, incluir_total)
+        else:
+            resultado = RelatorioService.exportar(formato)
+            
         if isinstance(resultado, tuple): 
             return jsonify(resultado[0]), resultado[1]
-        return resultado 
+        return resultado
 
     @app.route('/api/excluir_lote/<int:lote_id>', methods=['DELETE'])
     def api_excluir_lote(lote_id):

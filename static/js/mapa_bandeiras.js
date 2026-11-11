@@ -185,6 +185,8 @@ const MAPA_BANDEIRAS_LOCAIS = {
     "Equatorial Guinea": "EQUATORIAL_GUINEA.png",
     "ERITREA": "ERITREA.png",
     "Eritrea": "ERITREA.png",
+    "ESCOCIA": "ESCOCIA.png",
+    "Escocia": "ESCOCIA.png",
     "ESLOVAQUIA": "ESLOVAQUIA.png",
     "Eslovaquia": "ESLOVAQUIA.png",
     "ESPANHA": "ESPANHA.png",
