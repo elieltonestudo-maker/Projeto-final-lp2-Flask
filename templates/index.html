@@ -50,6 +50,7 @@
         .totais-info span { color: var(--gold-accent); font-weight: bold; }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        #modal-alerta { z-index: 2000; }
         .modal-box { background: var(--panel-bg); padding: 30px; border-radius: 8px; border: 1px solid var(--gold-accent); text-align: center; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         .modal-actions { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
         
@@ -306,9 +307,22 @@
         </div>
     </div>    
     
+    <!-- MODAL DE GERENCIAR USUÁRIOS -->
+    <div class="modal-overlay" id="modal-usuarios">
+        <div class="modal-box" style="max-width: 500px; text-align: left;">
+            <h3 style="color: var(--gold-accent); margin-top: 0;">👥 Gerenciar Usuários</h3>
+            <p style="font-size: 13px; color: #aaa; margin-bottom: 15px;">Apenas administradores podem ver esta tela.</p>
+            <div id="lista-usuarios" style="max-height: 300px; overflow-y: auto; margin-bottom: 20px;"></div>
+            <div class="modal-actions" style="justify-content: flex-end;">
+                <button class="btn btn-outline" onclick="fecharModalUsuarios()">Fechar</button>
+            </div>
+        </div>
+    </div>    
+    
+    
     <!-- CABEÇALHO COM MENU DE CONFIGURAÇÕES -->
     <div class="header" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 30px;">
-        <div style="font-size: 24px; font-weight: bold; color: var(--gold-accent);">Aquisições</div>
+        <div style="font-size: 24px; font-weight: bold; color: var(--gold-accent);">Gestão Numismática</div>
         
         <div style="display: flex; gap: 15px; align-items: center; position: relative;">
             <!-- 👁️ Botão Olhinho -->
@@ -323,6 +337,9 @@
                 <div id="menu-config" style="display: none; position: absolute; right: 0; top: 110%; background: var(--panel-bg); border: 1px solid var(--gold-accent); border-radius: 5px; min-width: 220px; z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.5);">
                     <button onclick="fazerBackup()" style="display: block; width: 100%; text-align: left; padding: 12px; background: none; border: none; color: var(--text-color); cursor: pointer; border-bottom: 1px solid var(--border-color);">💾 Fazer Backup</button>
                     <button onclick="abrirModalRestaurar()" style="display: block; width: 100%; text-align: left; padding: 12px; background: none; border: none; color: var(--text-color); cursor: pointer; border-bottom: 1px solid var(--border-color);">📤 Restaurar Backup</button>
+                    {% if is_admin %}
+                    <button onclick="abrirModalUsuarios()" style="display: block; width: 100%; text-align: left; padding: 12px; background: none; border: none; color: var(--text-color); cursor: pointer; border-bottom: 1px solid var(--border-color);">👥 Gerenciar Usuários</button>
+                    {% endif %}
                     <button onclick="atualizarBandeiras()" style="display: block; width: 100%; text-align: left; padding: 12px; background: none; border: none; color: var(--text-color); cursor: pointer; border-bottom: 1px solid var(--border-color);">🔄 Atualizar Bandeiras</button>
                     <button onclick="sairSistema()" style="display: block; width: 100%; text-align: left; padding: 12px; background: none; border: none; color: #ff4d4d; cursor: pointer;">🚪 Sair</button>
                 </div>
@@ -2048,6 +2065,74 @@
             carregarVendedoresDoBanco();
             carregarDadosPesquisa(); 
         });
-    </script>
+
+        // --- LÓGICA DE GERENCIAR USUÁRIOS ---
+        async function abrirModalUsuarios() {
+            document.getElementById('menu-config').style.display = 'none';
+            const container = document.getElementById('lista-usuarios');
+            container.innerHTML = '<p style="color: #888; text-align: center;">Carregando...</p>';
+            document.getElementById('modal-usuarios').style.display = 'flex';
+
+            try {
+                const res = await fetch('/api/usuarios');
+                if (!res.ok) throw new Error("Acesso negado");
+                const data = await res.json();
+                
+                container.innerHTML = '';
+                data.usuarios.forEach(u => {
+                    const item = document.createElement('div');
+                    item.style.display = 'flex';
+                    item.style.justifyContent = 'space-between';
+                    item.style.padding = '10px';
+                    item.style.borderBottom = '1px solid var(--border-color)';
+                    
+                    const nome = document.createElement('span');
+                    nome.innerText = u.username + (u.is_admin ? " (Admin)" : "");
+                    nome.style.color = u.is_admin ? "var(--gold-accent)" : "var(--text-color)";
+                    
+                    const btnExcluir = document.createElement('button');
+                    btnExcluir.innerHTML = "🗑️";
+                    btnExcluir.style.background = "none";
+                    btnExcluir.style.border = "none";
+                    btnExcluir.style.cursor = "pointer";
+                    btnExcluir.title = "Excluir usuário";
+                    btnExcluir.onclick = () => excluirUsuario(u.id, u.username);
+                    
+                    item.appendChild(nome);
+                    item.appendChild(btnExcluir);
+                    container.appendChild(item);
+                });
+            } catch (e) {
+                container.innerHTML = '<p style="color: #ff4d4d; text-align: center;">Erro ao carregar usuários.</p>';
+            }
+        }
+
+        function fecharModalUsuarios() {
+            document.getElementById('modal-usuarios').style.display = 'none';
+        }
+
+        function excluirUsuario(id, nome) {
+            mostrarConfirmacao(
+                "⚠️ Excluir Usuário", 
+                `Tem certeza que deseja excluir o usuário "${nome}"? Ele perderá o acesso ao sistema.`,
+                async () => {
+                    try {
+                        const res = await fetch(`/api/excluir_usuario/${id}`, { method: 'DELETE' });
+                        const data = await res.json();
+                        if (res.ok) {
+                            mostrarAlerta("✅ Sucesso", data.mensagem, "sucesso");
+                            abrirModalUsuarios(); // Recarrega a lista
+                        } else {
+                            mostrarAlerta("❌ Erro", data.erro, "erro");
+                        }
+                    } catch (e) {
+                        mostrarAlerta("❌ Erro", "Falha ao conectar com o servidor.", "erro");
+                    }
+                }
+            );
+        }        
+
+
+    </script> 
 </body>
 </html>
