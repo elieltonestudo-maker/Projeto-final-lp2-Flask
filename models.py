@@ -1,5 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
@@ -77,3 +78,17 @@ class Cedula(db.Model):
 
     def calcular_custo_final(self, valor_total_lote):
         return self.subtotal + self.calcular_rateio_frete(valor_total_lote)
+
+class Usuario(db.Model):
+    __tablename__ = 'usuarios'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+
+    def set_password(self, senha):
+        # Gera o hash seguro da senha
+        self.password_hash = generate_password_hash(senha)
+
+    def check_password(self, senha):
+        # Compara a senha digitada com o hash salvo
+        return check_password_hash(self.password_hash, senha)

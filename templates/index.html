@@ -1031,25 +1031,35 @@
             recalcularTabela();
         }
 
-        function recalcularTabela() {
+            function recalcularTabela() {
             const f = parseFloat(document.getElementById('frete-lote').value) || 0;
             const cE = document.getElementById('check-extras').checked ? (parseFloat(document.getElementById('input-extras').value) || 0) : 0;
             const valorTotalFrete = f + cE; 
             
-            let somaMartelos = 0;
+            // Mudamos o nome da variável para ficar claro que agora somamos os subtotais
+            let somaSubtotaisLote = 0; 
             let totalCedulasBruto = 0;
             const l = document.querySelectorAll('#corpo-tabela tr');
             
+            // 1º Loop: Calcula o peso total do lote (somando os subtotais)
             l.forEach(li => { 
                 const im = li.querySelector('.input-martelo'); 
                 const iq = li.querySelector('.input-qtd');
-                if(im && iq) {
+                const it = li.querySelector('.input-taxa');
+                
+                if(im && iq && it) {
                     const m = parseFloat(im.value) || 0;
                     const q = parseInt(iq.value) || 1;
-                    somaMartelos += (m * q); 
+                    const t = parseFloat(it.value) || 0;
+                    
+                    const valorBase = m * q;
+                    const subtotal = valorBase + (valorBase * (t / 100));
+                    
+                    somaSubtotaisLote += subtotal; 
                 }
             });
 
+            // 2º Loop: Calcula o custo de cada linha individualmente
             l.forEach(li => {
                 const im = li.querySelector('.input-martelo'); 
                 const it = li.querySelector('.input-taxa');
@@ -1066,8 +1076,9 @@
                 totalCedulasBruto += subtotal;
                 
                 let rateio = 0; 
-                if(somaMartelos > 0) {
-                    rateio = ((m * q) / somaMartelos) * valorTotalFrete;
+                if(somaSubtotaisLote > 0) {
+                    // AQUI ESTÁ A MUDANÇA: O rateio agora usa o subtotal na conta
+                    rateio = (subtotal / somaSubtotaisLote) * valorTotalFrete;
                 }
                 
                 const custoFinal = subtotal + rateio;
@@ -1082,7 +1093,6 @@
             const totalGeral = totalCedulasBruto + valorTotalFrete;
             document.getElementById('total-geral').innerText = `R$ ${totalGeral.toFixed(2).replace('.',',')}`;
         }
-
         function limparTudo() {
             mostrarConfirmacao(
                 "⚠️ Cancelar Cadastro", 

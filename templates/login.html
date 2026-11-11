@@ -38,7 +38,7 @@
             height: auto;      /* Mude de 90px para auto! Isso mantém a proporção perfeita */
             object-fit: contain;
             margin-bottom: 25px;
-            filter: drop-shadow(0 0 10px rgba(241, 196, 15, 0.3)); 
+            /*filter: drop-shadow(0 0 10px rgba(241, 196, 15, 0.3)); /* essa linha dá um brilho atrás da imagem do logo
             /* O SEGREDO ESTÁ AQUI: */
             mix-blend-mode: screen; 
         }
@@ -107,17 +107,27 @@
         <!-- 👇 COLOQUE O CAMINHO DA SUA IMAGEM AQUI 👇 -->
         <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="login-logo">
         
-        <h1>Central de Aquisições</h1>
-        <p class="subtitulo">Gestão de Compras e Acervo</p>
+        <h1>Gestão Numismática</h1>
+        <p class="subtitulo">Controle de Cédulas e Acervo</p>
         
         {% if erro %}
             <div class="erro">{{ erro }}</div>
         {% endif %}
 
         <form method="POST" action="/login">
-            <input type="password" name="senha" placeholder="Digite a senha de acesso" required autofocus>
+            <!-- NOVO: Campo de usuário -->
+            <input type="text" name="username" placeholder="Nome de usuário" required autofocus>
+            
+            <input type="password" name="senha" placeholder="Digite a senha de acesso" required>
+            
             <button type="submit">Entrar no Sistema</button>
         </form>
+        
+        <!-- NOVO: Link para tela de cadastro -->
+        <div style="margin-top: 20px; font-size: 13px;">
+            <span style="color: #aaa;">Não tem uma conta?</span> 
+            <a href="/cadastro" style="color: var(--gold-accent); text-decoration: none; font-weight: bold;">Cadastre-se</a>
+        </div>
     </div>
 </body>
 </html>

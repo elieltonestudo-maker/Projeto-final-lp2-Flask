@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Cadastro - Central de Aquisições</title>
+    <style>
+        :root { 
+            --bg-color: #121212; 
+            --panel-bg: #1e1e1e; 
+            --text-color: #e0e0e0; 
+            --gold-accent: #f1c40f; 
+            --border-color: #333; 
+            --input-bg: #2d2d2d;
+        }
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: var(--bg-color); 
+            color: var(--text-color); 
+            height: 100vh; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            margin: 0; 
+            background: radial-gradient(circle at center, #1a1a1a 0%, var(--bg-color) 100%);
+        }
+        .login-box {
+            background: var(--panel-bg); 
+            padding: 30px 40px 40px 40px; 
+            border-radius: 8px;
+            border: 1px solid var(--gold-accent); 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+            width: 100%; 
+            max-width: 400px; 
+            text-align: center;
+        }
+        .login-logo {
+            width: 140px;
+            height: auto;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 10px rgba(241, 196, 15, 0.3)); 
+            mix-blend-mode: screen; 
+        }
+        h1 { 
+            color: var(--gold-accent); 
+            margin-top: 0; 
+            font-size: 22px; 
+            margin-bottom: 25px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+        }
+        input {
+            width: 100%; 
+            padding: 12px; 
+            margin-bottom: 15px; 
+            background: var(--input-bg);
+            border: 1px solid var(--border-color); 
+            color: white; 
+            border-radius: 5px;
+            font-size: 16px; 
+            outline: none; 
+            box-sizing: border-box; 
+            transition: border 0.2s;
+        }
+        input:focus { 
+            border-color: var(--gold-accent); 
+            box-shadow: 0 0 8px rgba(241, 196, 15, 0.3); 
+        }
+        button {
+            width: 100%; 
+            padding: 12px; 
+            background: var(--gold-accent); 
+            color: #000;
+            border: none; 
+            border-radius: 5px; 
+            font-weight: bold; 
+            font-size: 16px;
+            cursor: pointer; 
+            transition: 0.3s; 
+            margin-top: 5px;
+        }
+        button:hover { 
+            transform: scale(1.02); 
+            box-shadow: 0 0 15px rgba(241, 196, 15, 0.6); 
+        }
+        .erro { 
+            background: rgba(255, 77, 77, 0.2); 
+            color: #ff4d4d; 
+            border: 1px solid #ff4d4d; 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin-bottom: 20px; 
+            font-size: 14px; 
+        }
+        a { 
+            color: var(--gold-accent); 
+            text-decoration: none; 
+            font-weight: bold; 
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <!-- Certifique-se de que a imagem é logo.png ou brasao.png na sua pasta static/img -->
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="login-logo">
+        <h1>Criar Conta</h1>
+        
+        {% if erro %}
+            <div class="erro">{{ erro }}</div>
+        {% endif %}
+
+        <form method="POST" action="/cadastro">
+            <input type="text" name="username" placeholder="Nome de usuário" required autofocus>
+            <input type="password" name="senha" placeholder="Senha (mínimo 4 caracteres)" required>
+            <input type="password" name="confirmar_senha" placeholder="Confirme a senha" required>
+            <button type="submit">Cadastrar</button>
+        </form>
+        
+        <div style="margin-top: 20px; font-size: 13px;">
+            <span style="color: #aaa;">Já tem uma conta?</span> 
+            <a href="/login">Faça login</a>
+        </div>
+    </div>
+</body>
+</html>

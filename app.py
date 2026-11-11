@@ -15,6 +15,7 @@ from services.exclusao_service import ExclusaoService
 from flask import session, redirect, url_for
 from services.auth_service import AuthService
 from services.vendedor_service import VendedorService
+from services.custo_service import CustoService
 
 
 
@@ -33,8 +34,8 @@ def create_app():
     # 👇 BLOCO DE LOGIN E LOGOUT AQUI 👇
     @app.before_request
     def require_login():
-        # Lista de rotas que NÃO precisam de login
-        rotas_livres = ['login', 'static'] 
+        # Adicionado 'cadastro' na lista
+        rotas_livres = ['login', 'cadastro', 'static'] 
         if request.endpoint and not AuthService.esta_logado() and request.endpoint not in rotas_livres:
             return redirect(url_for('login'))
 
@@ -52,14 +53,33 @@ def create_app():
             return redirect(url_for('index'))
             
         if request.method == 'POST':
+            username = request.form.get('username')
             senha = request.form.get('senha')
-            if AuthService.verificar_senha(senha):
-                AuthService.fazer_login()
+            
+            if AuthService.verificar_login(username, senha):
                 return redirect(url_for('index'))
             else:
-                return render_template('login.html', erro='Senha incorreta. Tente novamente.')
+                return render_template('login.html', erro='Usuário ou senha incorretos.')
                 
         return render_template('login.html')
+
+    @app.route('/cadastro', methods=['GET', 'POST'])
+    def cadastro():
+        if AuthService.esta_logado():
+            return redirect(url_for('index'))
+            
+        if request.method == 'POST':
+            username = request.form.get('username')
+            senha = request.form.get('senha')
+            confirmar = request.form.get('confirmar_senha')
+            
+            resultado, status = AuthService.cadastrar(username, senha, confirmar)
+            if status == 201:
+                return redirect(url_for('login'))
+            else:
+                return render_template('cadastro.html', erro=resultado['erro'])
+                
+        return render_template('cadastro.html')  
 
     @app.route('/logout')
     def logout():
@@ -151,31 +171,32 @@ def create_app():
              .join(Vendedor, Lote.vendedor_id == Vendedor.id)\
              .order_by(Cedula.id.desc()).all()
 
-            # Precisamos do valor total de cada lote para fazer o rateio proporcional
-            # Vamos agrupar por lote_id e calcular o total de martelos de cada um
-            totais_lotes = {}
+            # 1. Agrupa por lote_id e calcula o TOTAL DE SUBTOTAIS (Martelo + Taxa) de cada lote
+            totais_subtotais_lotes = {}
             for r in resultados:
-                if r.lote_id not in totais_lotes:
-                    totais_lotes[r.lote_id] = 0
-                # O valor base do lote é martelo * quantidade
-                totais_lotes[r.lote_id] += (r.martelo * r.quantidade)
+                if r.lote_id not in totais_subtotais_lotes:
+                    totais_subtotais_lotes[r.lote_id] = 0
+                
+                # Calcula o subtotal da cédula (Martelo * Qtd + Taxa)
+                valor_base = r.martelo * r.quantidade
+                subtotal = valor_base + (valor_base * (r.taxa_leilao / 100))
+                
+                # Soma ao total do lote
+                totais_subtotais_lotes[r.lote_id] += subtotal
 
             lista_cedulas = []
             for r in resultados:
-                # Calcula o valor base da cédula (Martelo * Qtd + Taxa)
-                valor_bruto = r.martelo * r.quantidade
-                valor_base = valor_bruto + (valor_bruto * (r.taxa_leilao / 100))
+                frete_total = r.frete + r.custos_extras
+                total_subtotal_lote = totais_subtotais_lotes[r.lote_id]
                 
-                # Calcula o Rateio do Frete
-                valor_total_frete_lote = r.frete + r.custos_extras
-                total_martelos_lote = totais_lotes[r.lote_id]
-                
-                rateio = 0.0
-                if total_martelos_lote > 0:
-                    # (Valor base da cédula / Valor total do lote) * Frete Total
-                    rateio = (valor_bruto / total_martelos_lote) * valor_total_frete_lote
-                
-                custo_final = valor_base + rateio
+                # 2. Chama o CustoService passando o TOTAL DE SUBTOTAIS
+                custos = CustoService.calcular(
+                    martelo=r.martelo,
+                    quantidade=r.quantidade,
+                    taxa_leilao=r.taxa_leilao,
+                    frete_total=frete_total,
+                    total_subtotal_lote=total_subtotal_lote
+                )
                 
                 lista_cedulas.append({
                     'id': r.id, 
@@ -187,9 +208,9 @@ def create_app():
                     'estado': r.estado, 
                     'quantidade': r.quantidade,
                     'martelo': r.martelo, 
-                    'custo_base': valor_base,      # O valor sem frete
-                    'rateio': rateio,              # O valor do frete rateado
-                    'custo_final': custo_final,    # O valor real (base + frete)
+                    'custo_base': custos['subtotal'],
+                    'rateio': custos['rateio'],
+                    'custo_final': custos['custo_final'],
                     'data': r.data_compra,
                     'ref_lote': r.ref_lote, 
                     'origem': r.origem, 
