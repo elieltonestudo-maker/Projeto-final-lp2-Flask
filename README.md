@@ -2,18 +2,20 @@
 
 Este projeto é o trabalho final das disciplinas de **Estruturas de Dados** e **Linguagem de Programação 2**, do curso de **Inteligência Artificial** da **Fatec Rio Claro/SP**, sob orientação do professor **Orlando Saraiva Jr.**
 
-O sistema é uma aplicação web local (desenvolvida em **Flask/Python**) para automatizar o cadastro, gestão e análise de cédulas colecionáveis. Ele permite a importação automática de dados de recibos (PDF/Texto), cálculo de rateio de frete, gestão de vendedores, controle de usuários com níveis de acesso e exportação de relatórios visuais em PDF.
+O sistema é uma aplicação web local (desenvolvida em **Flask/Python**) para automatizar o cadastro, gestão e análise de cédulas colecionáveis. Ele permite a importação de dados, cálculo de rateio de frete, gestão de vendedores, controle de usuários com níveis de acesso e exportação de relatórios visuais em PDF.
 
 ---
 
 ## 🚀 Funcionalidades Principais
 
-* **Autenticação Segura:** Login e cadastro de usuários com senhas criptografadas (Hash) e níveis de acesso (Administrador / Comum).
-* **Importação Inteligente:** Extração automática de dados (País, Valor, Ano, Estado, Martelo) a partir de PDFs de leilões, e-mails ou textos do WhatsApp, usando Regex avançado.
-* **Cálculo de Rateio:** Distribuição automática de frete e custos extras proporcional ao valor das cédulas.
-* **Gestão de Acervo:** Pesquisa avançada por país, vendedor, estado e faixa de valor.
+* **Autenticação Segura e Persistente:** Login e cadastro de usuários com senhas criptografadas (Hash). Utiliza arquivo `.env` para manter a sessão do usuário ativa mesmo após reiniciar o servidor.
+* **Importação Inteligente:** Extração automática de dados (País, Valor, Ano, Estado, Martelo) a partir de PDFs de leilões, e-mails ou textos do WhatsApp. Suporte a OCR (RapidOCR) para cópia de imagens/prints.
+* **Cálculo de Rateio Automático:** Distribuição proporcional de frete e custos extras baseada no subtotal de cada cédula do lote.
+* **Edição Completa de Lotes:** Modal interativo que permite alterar dados do vendedor, frete e todas as cédulas do lote de uma só vez, recalculando os custos automaticamente.
+* **Gestão de Acervo:** Pesquisa avançada por país, vendedor, estado e faixa de valor. Filtros dinâmicos e ordenação inteligente.
 * **Relatórios em PDF:** Geração de relatórios com gráfico de barras (Top 10 Países), bandeiras, tabela detalhada e marca d'água.
-* **Segurança e Backup:** Backup do banco de dados e ferramenta de restauração com validação de integridade.
+* **Bandeiras Locais:** Sistema próprio de cache e tradução de bandeiras em formato PNG para carregamento rápido e offline.
+* **Segurança e Backup:** Backup do banco de dados via arquivo ZIP e ferramenta de restauração com validação de integridade.
 
 ---
 
@@ -21,13 +23,13 @@ O sistema é uma aplicação web local (desenvolvida em **Flask/Python**) para a
 
 * [Python 3.10+](https://www.python.org/downloads/)
 * [Git](https://git-scm.com/) (opcional)
-* [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki) (Opcional - apenas para importar imagem)
 
 ---
 
 ## ⚙️ Como Executar o Projeto
 
 ### 1. Clonar o repositório (ou baixar o ZIP)
+```bash
 git clone https://github.com/elieltonestudo-maker/Projeto-final-lp2-Flask.git
 cd Projeto-final-lp2-Flask
 
@@ -43,7 +45,12 @@ source .venv/bin/activate
 ### 3. Instalar as dependências
 pip install -r requirements.txt
 
-### 4. Executar o sistema
+### 4. Configurar as Variáveis de Ambiente (.env)
+Crie um arquivo chamado .env na raiz do projeto (na mesma pasta do app.py) e adicione a seguinte linha para garantir a persistência da sessão:
+
+SECRET_KEY=sua-chave-secreta-super-segura-aqui
+
+### 5. Executar o sistema
 python app.py
 
 O navegador abrirá automaticamente em http://127.0.0.1:5000.
@@ -77,23 +84,31 @@ Na pasta `ARQUIVOS_TESTE/` do projeto, existem arquivos `.docx` com exemplos de 
 
 ## 📂 Estrutura do Projeto
 
+
 Projeto-final-lp2-Flask/
 │
-├── app.py                  # Rotas Flask
-├── models.py               # Modelos (SQLAlchemy)
-├── requirements.txt        # Dependências
-├── ARQUIVOS_TESTE/         # Arquivos .docx para teste
+├── app.py                  # Rotas Flask e inicialização
+├── models.py               # Modelos do Banco de Dados (SQLAlchemy)
+├── requirements.txt        # Dependências do projeto
+├── atualizar_bandeiras.py  # Script para traduzir e redimensionar bandeiras
+├── .env                    # Variáveis de ambiente (SECRET_KEY)
 │
 ├── services/               # Regras de Negócio (OOP)
 │   ├── auth_service.py
 │   ├── custo_service.py
 │   ├── pdf_processor.py
 │   ├── text_processor.py
-│   ├── pdf_export_service.py
-│   └── sistema_service.py
+│   ├── image_processor.py
+│   ├── lote_service.py
+│   ├── relatorio_service.py
+│   └── ...
 │
-├── templates/              # HTML
-└── instance/               # Banco SQLite (gerado auto)
+├── static/                 
+│   ├── js/mapa_bandeiras.js
+│   └── img/flags/          # Bandeiras em PNG
+│
+├── templates/              # Arquivos HTML (Login, Index, etc)
+└── instance/               # Banco de dados SQLite (gerado auto)
 
 ---
 
@@ -103,7 +118,7 @@ Projeto-final-lp2-Flask/
 * **Framework Web:** Flask.
 * **Estrutura de Dados / ORM:** SQLAlchemy (mapeamento objeto-relacional).
 * **Banco de Dados:** SQLite.
-* **Processamento de Dados:** Pdfplumber, Regex (para parsing de texto).
+* **Processamento de Dados:** Pdfplumber, RapidOCR, Regex (para parsing de texto).
 * **Geração de PDF:** ReportLab, Matplotlib (gráficos), PyPDF2 (carimbo/numeração), Pillow (bandeiras).
 
 ---
@@ -114,4 +129,4 @@ Projeto-final-lp2-Flask/
 * **Curso:** Inteligência Artificial
 * **Disciplinas:** Estruturas de Dados / Linguagem de Programação 2
 * **Professor:** Orlando Saraiva Jr.
-* **Autor:** [Seu Nome Aqui] (RA: [Seu RA])
+* **Autor:** Elielton Barbosa (RA: [Seu RA])
