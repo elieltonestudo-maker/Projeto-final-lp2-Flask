@@ -1,4 +1,4 @@
-# 🪙 Gestão Numismática - Sistema de Acervo de Cédulas
+# 🪙 Gestor Numismático - Controle de Aquisições de Cédulas Monetárias
 
 Este projeto é o trabalho final das disciplinas de **Estruturas de Dados** e **Linguagem de Programação 2**, do curso de **Inteligência Artificial** da **Fatec Rio Claro/SP**, sob orientação do professor **Orlando Saraiva Jr.**
 
