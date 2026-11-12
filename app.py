@@ -19,6 +19,7 @@ from services.vendedor_service import VendedorService
 from services.custo_service import CustoService
 from models import db, Vendedor, Lote, Cedula, Usuario  
 from flask import session, redirect, url_for  
+from services.image_processor import ProcessadorImagem
 
 
 # --- FÁBRICA DA APLICAÇÃO FLASK ---
@@ -135,6 +136,48 @@ def create_app():
         except Exception as e:
             return jsonify({'erro': f'Erro ao processar PDF: {str(e)}'}), 500
     # 👆 FIM DA ROTA DO PDF 👆
+    
+    
+    @app.route('/processar_arquivo_drop', methods=['POST'])
+    def processar_arquivo_drop():
+        if 'arquivo' not in request.files:
+            return jsonify({'erro': 'Nenhum arquivo enviado'}), 400
+        
+        arquivo = request.files['arquivo']
+        if arquivo.filename == '':
+            return jsonify({'erro': 'Arquivo sem nome'}), 400
+
+        extensao = arquivo.filename.rsplit('.', 1)[-1].lower()
+
+        try:
+            if extensao == 'pdf':
+                processador = ProcessadorPDF(arquivo)
+                processador.extrair_texto()
+                cedulas = processador.extrair_cedulas()
+                return jsonify({'cedulas': cedulas, 'tipo': 'pdf'}), 200
+
+            elif extensao in ['png', 'jpg', 'jpeg']:
+                processador_img = ProcessadorImagem(arquivo)
+                texto_bruto = processador_img.extrair_texto()
+                processador_txt = ProcessadorTexto(texto_bruto)
+                cedulas = processador_txt.extrair_cedulas()
+                
+                # 👇 Se não achou nenhuma cédula, retorna 200 mas com a lista vazia e o texto bruto
+                # Isso permite que o JS mostre o texto no console para você debugar
+                return jsonify({
+                    'cedulas': cedulas, 
+                    'tipo': 'imagem', 
+                    'texto_bruto': texto_bruto
+                }), 200
+            elif extensao == 'txt':
+                texto = arquivo.read().decode('utf-8')
+                return jsonify({'texto': texto, 'tipo': 'txt'}), 200
+
+            else:
+                return jsonify({'erro': 'Formato não suportado. Envie PDF, Imagem ou TXT.'}), 400
+
+        except Exception as e:
+            return jsonify({'erro': f'Erro ao processar arquivo: {str(e)}'}), 500    
     
     @app.route('/salvar_lote', methods=['POST'])
     def salvar_lote():

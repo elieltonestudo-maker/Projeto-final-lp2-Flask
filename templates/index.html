@@ -60,6 +60,12 @@
 </head>
 <body>
 
+    <!-- ZONA DE DRAG AND DROP -->
+    <div id="zona-drop" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(241, 196, 15, 0.15); z-index: 99999; border: 4px dashed var(--gold-accent); box-sizing: border-box; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; backdrop-filter: blur(4px);">
+        <h1 style="color: var(--gold-accent); font-size: 48px; text-shadow: 0 0 20px #000;">📂 Solte o arquivo aqui!</h1>
+        <p style="color: var(--text-color); font-size: 20px; font-weight: bold;">PDF, Imagem ou TXT</p>
+    </div>
+
     <!-- MODAL DE CONFIRMAÇÃO (Excluir) -->
     <div class="modal-overlay" id="modal-confirmacao">
         <div class="modal-box">
@@ -409,26 +415,61 @@
                 </span>
             </div>
             
-            <div class="input-group" style="justify-content: space-between; margin-bottom: 15px; padding: 10px; background: #2a2a2a; border-radius: 5px;">
+            <!-- 👇 INÍCIO DO PAINEL DE AÇÕES E IMPORTAÇÃO 👇 -->
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 15px; padding: 10px; background: #2a2a2a; border-radius: 5px; align-items: center; justify-content: space-between;">
+                
+                <!-- Esquerda: Ações em Massa -->
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                     <label style="color: var(--gold-accent); font-weight: bold;">Ações em Massa:</label>
                     <input type="text" id="massa-data" placeholder="DD/MM/AAAA" style="width: 120px;" oninput="aplicarMascaraData(this)">
                     <input type="text" id="massa-ref" placeholder="Nº Leilão/Lote" style="width: 120px;">
                     <select id="massa-estado" style="width: 100px;">
-                        <option value="">Estado</option><option>FE</option><option>S/FE</option><option>S</option><option>MBC/S</option><option>MBC</option><option>BC/MBC</option><option>BC</option><option>R</option><option>UTG</option>
+                        <option value="">Estado</option>
+                        <option>FE</option><option>S/FE</option><option>S</option><option>MBC/S</option><option>MBC</option><option>BC/MBC</option><option>BC</option><option>R</option><option>UTG</option>
                     </select>
                     <button class="btn btn-outline" onclick="aplicarEmMassa()">Aplicar</button>
                     <button class="btn btn-danger" onclick="abrirModalExclusaoMassa()">🗑️ Excluir</button>
                     <button class="btn btn-undo" onclick="desfazerExclusao()" title="Desfazer última exclusão">↺ Desfazer</button>
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn" onclick="abrirModalTexto()">📥 Importar Texto</button>
+
+                <!-- Direita: Botões de Importação (Compactos) -->
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    
+                    <!-- Botão Texto -->
+                    <button class="btn btn-outline" onclick="abrirModalTexto()" title="Importar Texto (E-mail/WhatsApp)" style="font-size: 18px; padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                        📝
+                    </button>
+                    
+                    <!-- Botão PDF -->
                     <form id="form-pdf" action="/processar_pdf" method="POST" enctype="multipart/form-data" style="display: inline;" onsubmit="event.preventDefault(); processarArquivo(this);">
                         <input type="file" name="arquivo_pdf" id="input-pdf" accept=".pdf" style="display: none;" onchange="document.getElementById('form-pdf').requestSubmit();">
-                        <button type="button" class="btn" onclick="document.getElementById('input-pdf').click();">📥 Importar PDF</button>
+                        <button type="button" class="btn btn-outline" onclick="document.getElementById('input-pdf').click();" title="Importar PDF" style="padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                            
+                            <!-- Ícone Fake de PDF (Ajustado) -->
+                            <div style="position: relative; width: 15px; height: 19px; border: 1.5px solid #ff4d4d; border-radius: 2px; background-color: white; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 1px; box-sizing: border-box; overflow: hidden;">
+                                
+                                <!-- Dobra do papel (Triângulo) -->
+                                <div style="position: absolute; top: -1.5px; right: -1.5px; width: 0; height: 0; border-style: solid; border-width: 0 7px 7px 0; border-color: transparent #2a2a2a transparent transparent; z-index: 2;"></div>
+                                
+                                <!-- Contorno da dobra -->
+                                <div style="position: absolute; top: -1.5px; right: -1.5px; width: 0; height: 0; border-style: solid; border-width: 8px 8px 8px 0; border-color: transparent #ff4d4d transparent transparent; z-index: 1;"></div>
+
+                                <!-- Texto PDF -->
+                                <span style="font-size: 6px; font-weight: 900; color: #ff4d4d; line-height: 1; z-index: 3;">PDF</span>
+                            </div>
+                            
+                        </button>
                     </form>
+
+                    <!-- Botão Print -->
+                    <button class="btn btn-outline" onclick="colarPrint()" title="Colar Print (Ctrl+V)" style="font-size: 18px; padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-style: dashed;">
+                        📋
+                    </button>
+                    
                 </div>
+
             </div>
+            <!-- 👆 FIM DO PAINEL DE AÇÕES E IMPORTAÇÃO 👆 -->
             <table>
                 <thead>
                     <tr>
@@ -2165,7 +2206,107 @@
                 }
             );
         }        
+       
+        // --- LÓGICA DE ARRASTAR E SOLTAR (DRAG AND DROP) ---
+        let dragCounter = 0;
+        const zonaDrop = document.getElementById('zona-drop');
 
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            document.body.addEventListener(eventName, e => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+            }, false);
+        });
+
+        document.body.addEventListener('dragenter', () => { 
+            dragCounter++; 
+            zonaDrop.style.display = 'flex'; 
+        });
+
+        document.body.addEventListener('dragleave', () => { 
+            dragCounter--; 
+            if (dragCounter === 0) zonaDrop.style.display = 'none'; 
+        });
+
+        document.body.addEventListener('drop', async (e) => {
+            dragCounter = 0;
+            zonaDrop.style.display = 'none';
+            
+            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                const arquivo = e.dataTransfer.files[0];
+                const formData = new FormData();
+                formData.append('arquivo', arquivo);
+                
+                mostrarAlerta("⏳ Processando", `Lendo o arquivo ${arquivo.name}...`, "aviso");
+                
+                try {
+                    const res = await fetch('/processar_arquivo_drop', { method: 'POST', body: formData });
+                    const data = await res.json();
+                    
+                    if (res.ok) {
+                        if (data.tipo === 'txt') {
+                            document.getElementById('texto-email').value = data.texto;
+                            abrirModalTexto(); // Abre a caixa de texto para o usuário
+                        } else if (data.cedulas && data.cedulas.length > 0) {
+                            renderizarTabela(data.cedulas); // Joga na tabela
+                            document.getElementById('nome-arquivo-importado').innerText = `📄 ${arquivo.name}`;
+                            mostrarAlerta("✅ Sucesso", `${data.cedulas.length} cédulas importadas!`, "sucesso");
+                        } else {
+                            mostrarAlerta("❌ Atenção", "Nenhuma cédula encontrada no arquivo.", "erro");
+                        }
+                    } else {
+                        mostrarAlerta("❌ Erro", data.erro, "erro");
+                    }
+                } catch (err) {
+                    mostrarAlerta("❌ Erro", "Falha ao comunicar com o servidor.", "erro");
+                }
+            }
+        });
+
+        // --- LÓGICA DE COLAR IMAGEM (CTRL + V) ---
+        document.addEventListener('paste', async (e) => {
+            // Pega os itens que foram colados
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            
+            for (let index in items) {
+                const item = items[index];
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    e.preventDefault(); // Evita comportamentos estranhos
+                    
+                    const arquivo = item.getAsFile(); // Transforma em arquivo
+                    const formData = new FormData();
+                    formData.append('arquivo', arquivo, 'print_colado.png');
+                    
+                    mostrarAlerta("⏳ Processando", "Lendo a imagem colada...", "aviso");
+                    
+                    try {
+                        const res = await fetch('/processar_arquivo_drop', { method: 'POST', body: formData });
+                        const data = await res.json();
+                        
+                        if (res.ok) {
+                            if (data.cedulas && data.cedulas.length > 0) {
+                                renderizarTabela(data.cedulas);
+                                document.getElementById('nome-arquivo-importado').innerText = `📋 Print Colado`;
+                                mostrarAlerta("✅ Sucesso", `${data.cedulas.length} cédulas importadas!`, "sucesso");
+                            } else {
+                                // Se falhar, mostra o texto bruto (o que o EasyOCR leu)
+                                console.log("Texto lido pela IA:", data.texto_bruto);
+                                mostrarAlerta("❌ Atenção", "A IA leu a imagem, mas não encontrou o padrão de cédulas.", "erro");
+                            }
+                        } else {
+                            mostrarAlerta("❌ Erro", data.erro, "erro");
+                        }
+                    } catch (err) {
+                        mostrarAlerta("❌ Erro", "Falha ao processar a imagem colada.", "erro");
+                    }
+                }
+            }
+        });
+
+        function colarPrint() {
+            mostrarAlerta("📋 Pronto para colar!", "Tire o print da tela (Win+Shift+S) e aperte Ctrl+V agora.", "aviso");
+        }
+        
 
     </script> 
 </body>
