@@ -1,6 +1,16 @@
 from models import db, Vendedor, Lote, Cedula
 
 class LoteService:
+    
+    @staticmethod
+    def _gerar_assinatura(cedulas, ref):
+        """Gera uma assinatura única para o lote, garantindo a mesma ordem de verificação."""
+        partes = [f"REF_{ref}"]
+        # Ordena por País, depois Descrição, depois Ano, para garantir consistência
+        for c in sorted(cedulas, key=lambda x: (x.get('pais',''), x.get('valor_facial', x.get('descricao','')), x.get('ano',''))):
+            partes.append(f"{c.get('pais')}|{c.get('valor_facial', c.get('descricao'))}|{c.get('ano')}|{c.get('quantidade',1)}")
+        return "||".join(partes)
+
     @staticmethod
     def salvar(dados):
         if not dados:
@@ -14,36 +24,39 @@ class LoteService:
                 db.session.add(vendedor)
                 db.session.flush()
 
-            # --- TRAVA DE SEGURANÇA (COMPARAÇÃO ITEM POR ITEM) ---
+            # --- TRAVA DE SEGURANÇA (COMPARAÇÃO PADRONIZADA) ---
             ref_lote_para_verificar = ""
             if dados.get('cedulas') and len(dados['cedulas']) > 0:
                 ref_lote_para_verificar = dados['cedulas'][0].get('ref_lote', '')
             
-            # Gera uma "assinatura digital" do lote que está sendo salvo
-            # Exemplo: "REF_12|BRASIL-10-1994-1|BRASIL-20-1994-1"
-            assinatura_novo_lote = f"REF_{ref_lote_para_verificar}|"
-            for c in sorted(dados.get('cedulas', []), key=lambda x: (x.get('pais',''), x.get('descricao',''))):
-                assinatura_novo_lote += f"{c.get('pais')}-{c.get('descricao')}-{c.get('ano')}-{c.get('quantidade')}|"
+            # Gera a assinatura do lote NOVO que está chegando
+            assinatura_novo_lote = LoteService._gerar_assinatura(dados.get('cedulas', []), ref_lote_para_verificar)
             
-            # Busca todos os lotes desse vendedor e gera a assinatura deles para comparar
-            lotes_existentes = Lote.query.filter_by(vendedor_id=vendedor.id)\
-                .join(Cedula).all()
+            # Busca todos os lotes desse vendedor
+            lotes_existentes = Lote.query.filter_by(vendedor_id=vendedor.id).join(Cedula).all()
             
             for lote_ex in lotes_existentes:
-                # Pega a Ref. Lote do lote existente
+                # Pega a Ref. Lote do lote existente no banco
                 ref_ex = lote_ex.cedulas[0].ref_lote if lote_ex.cedulas else ""
                 
-                assinatura_lote_ex = f"REF_{ref_ex}|"
-                # Precisamos ordenar as cédulas do lote existente da mesma forma
-                cedulas_ex_ordenadas = sorted(lote_ex.cedulas, key=lambda x: (x.pais, x.valor_facial))
-                for c in cedulas_ex_ordenadas:
-                    assinatura_lote_ex += f"{c.pais}-{c.valor_facial}-{c.ano}-{c.quantidade}|"
+                # Transforma as cédulas do banco em dicionários para usar a MESMA função de assinatura
+                cedulas_existentes_dados = [
+                    {
+                        'pais': c.pais, 
+                        'valor_facial': c.valor_facial, 
+                        'ano': c.ano, 
+                        'quantidade': c.quantidade
+                    } for c in lote_ex.cedulas
+                ]
                 
-                # Se as assinaturas baterem (mesma Ref e exatamente as mesmas cédulas e quantidades)
+                # Gera a assinatura do lote EXISTENTE
+                assinatura_lote_ex = LoteService._gerar_assinatura(cedulas_existentes_dados, ref_ex)
+                
+                # Compara
                 if assinatura_novo_lote == assinatura_lote_ex:
                     return {'erro': f'⚠️ Lote duplicado! A Ref: {ref_lote_para_verificar} com estas cédulas e quantidades já foi cadastrada para {nome_vendedor}!'}, 400
             # ---------------------------------------------
-            # ---------------------------------------------
+
             # --- CRIAÇÃO DO LOTE ---
             novo_lote = Lote(
                 vendedor_id=vendedor.id,

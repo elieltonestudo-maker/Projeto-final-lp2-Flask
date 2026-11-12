@@ -4,6 +4,7 @@ import os
 import webbrowser     
 import threading 
 import shutil     
+from dotenv import load_dotenv
 from models import db, Vendedor, Lote, Cedula
 from dicionario import traduzir_estado, ESTADOS_CONSERVACAO
 from services.pdf_processor import ProcessadorPDF
@@ -21,6 +22,8 @@ from models import db, Vendedor, Lote, Cedula, Usuario
 from flask import session, redirect, url_for  
 from services.image_processor import ProcessadorImagem
 
+# 👇 ADICIONE ESTAS DUAS LINHAS AQUI 👇
+load_dotenv() 
 
 # --- FÁBRICA DA APLICAÇÃO FLASK ---
 def create_app():
@@ -307,6 +310,86 @@ def create_app():
         except Exception as e:
             return jsonify({'erro': str(e)}), 500
 
+    @app.route('/api/lote/<int:lote_id>', methods=['GET'])
+    def api_obter_lote(lote_id):
+        try:
+            lote = Lote.query.get(lote_id)
+            if not lote:
+                return jsonify({'erro': 'Lote não encontrado'}), 404
+            
+            # Pega as informações do vendedor e do lote
+            dados_lote = {
+                'id': lote.id,
+                'vendedor': lote.vendedor.nome,
+                'origem': lote.origem,
+                'frete': lote.frete,
+                'custos_extras': lote.custos_extras,
+                'cedulas': []
+            }
+            
+            # Pega as cédulas vinculadas
+            for c in lote.cedulas:
+                dados_lote['cedulas'].append({
+                    'id': c.id,
+                    'pais': c.pais,
+                    'valor_facial': c.valor_facial,
+                    'ano': c.ano,
+                    'catalogo': c.catalogo,
+                    'estado': c.estado,
+                    'quantidade': c.quantidade,
+                    'data_compra': c.data_compra,
+                    'ref_lote': c.ref_lote,
+                    'martelo': c.martelo,
+                    'taxa_leilao': c.taxa_leilao
+                })
+            return jsonify(dados_lote)
+        except Exception as e:
+            return jsonify({'erro': str(e)}), 500
+
+    @app.route('/api/editar_lote/<int:lote_id>', methods=['PUT'])
+    def api_editar_lote(lote_id):
+        dados = request.get_json()
+        try:
+            lote = Lote.query.get(lote_id)
+            if not lote:
+                return jsonify({'erro': 'Lote não encontrado'}), 404
+            
+            # Atualiza os dados do lote
+            lote.frete = float(dados.get('frete', 0.0))
+            lote.custos_extras = float(dados.get('custos_extras', 0.0))
+            lote.origem = dados.get('origem', lote.origem)
+            
+            # Atualiza o vendedor (se mudou o nome)
+            novo_vendedor = dados.get('vendedor', '').strip()
+            if novo_vendedor and lote.vendedor.nome != novo_vendedor:
+                v = Vendedor.query.filter_by(nome=novo_vendedor).first()
+                if not v:
+                    v = Vendedor(nome=novo_vendedor)
+                    db.session.add(v)
+                    db.session.flush()
+                lote.vendedor_id = v.id
+            
+            # Atualiza as cédulas
+            for c_data in dados.get('cedulas', []):
+                cedula = Cedula.query.get(c_data.get('id'))
+                if cedula and cedula.lote_id == lote.id:
+                    cedula.data_compra = c_data.get('data_compra', cedula.data_compra) 
+                    cedula.ref_lote = c_data.get('ref_lote', cedula.ref_lote) 
+                    cedula.pais = c_data.get('pais', cedula.pais)
+                    cedula.valor_facial = c_data.get('valor_facial', cedula.valor_facial)
+                    cedula.catalogo = c_data.get('catalogo', cedula.catalogo) 
+                    cedula.ano = c_data.get('ano', cedula.ano)
+                    cedula.estado = c_data.get('estado', cedula.estado)
+                    cedula.quantidade = int(c_data.get('quantidade', 1))
+                    cedula.martelo = float(c_data.get('martelo', 0.0))
+                    cedula.taxa_leilao = float(c_data.get('taxa_leilao', 0.0)) 
+            
+            db.session.commit()
+            return jsonify({'mensagem': 'Lote atualizado com sucesso!'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'erro': str(e)}), 500 
+    
     @app.route('/api/exportar/<formato>', methods=['GET'])
     def api_exportar(formato):
         if formato == 'pdf':

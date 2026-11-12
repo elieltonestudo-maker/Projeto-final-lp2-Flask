@@ -7,7 +7,7 @@
     <script src="/static/js/mapa_bandeiras.js"></script>
     <style>
         :root { --bg-color: #121212; --panel-bg: #1e1e1e; --text-color: #e0e0e0; --gold-accent: #f1c40f; --border-color: #333; --input-bg: #2d2d2d; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; overflow-x: hidden; }
         .header { text-align: center; padding: 20px; color: var(--gold-accent); font-size: 24px; font-weight: bold; }
         .tabs-container { display: flex; background: var(--panel-bg); border-bottom: 1px solid var(--border-color); padding: 0 20px; }
         .tab { padding: 15px 30px; cursor: pointer; font-size: 14px; font-weight: bold; color: #888; border-bottom: 3px solid transparent; transition: 0.2s; }
@@ -35,7 +35,7 @@
         .btn-del-linha { background: none; border: none; color: #ff4d4d; font-size: 16px; cursor: pointer; transition: all 0.2s ease; }
         .btn-del-linha:hover { color: #ff0000; transform: scale(1.3); text-shadow: 0 0 8px rgba(255, 0, 0, 0.6); }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; display: block; max-height: 450px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border-bottom: 1px solid var(--border-color); padding: 15px 10px; text-align: left; font-size: 13px; white-space: nowrap; }
         th { color: var(--gold-accent); text-transform: uppercase; }
         thead th { position: sticky; top: 0; background: var(--panel-bg); z-index: 10; border-bottom: 2px solid var(--gold-accent); }
@@ -51,7 +51,7 @@
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
         #modal-alerta { z-index: 2000; }
-        .modal-box { background: var(--panel-bg); padding: 30px; border-radius: 8px; border: 1px solid var(--gold-accent); text-align: center; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .modal-box { background: var(--panel-bg); padding: 30px; border-radius: 8px; border: 1px solid var(--gold-accent); text-align: center; max-width: 400px; width: 90%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto; }
         .modal-actions { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
         
         .data-invalida { border: 1px solid #ff4d4d !important; color: #ff4d4d !important; }
@@ -289,8 +289,72 @@
                 <button class="btn" style="width: 100%; background: #444; color: #fff;" onclick="fecharModalEscolha()">Cancelar</button>
             </div>
         </div>
-    </div>   
+    </div>  
+    
+    <!-- MODAL DE EDITAR LOTE -->
+    <div class="modal-overlay" id="modal-editar-lote">
+        <div class="modal-box" style="max-width: 950px; width: 95%; text-align: left;">
+            
+            <h3 style="color: var(--gold-accent); margin-top: 0; margin-bottom: 20px;">✏️ Editar Lote</h3>
+            
+            <!-- CAMPOS DO TOPO (VENDEDOR, ORIGEM, FRETE) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div>
+                    <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 5px;">Vendedor:</label>
+                    <input type="text" id="edit-vendedor" style="width: 100%; box-sizing: border-box;">
+                </div>
+                <div>
+                    <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 5px;">Origem:</label>
+                    <select id="edit-origem" style="width: 100%; box-sizing: border-box;">
+                        <option value="Leilão Oficial">Leilão Oficial</option>
+                        <option value="Venda Pessoal">Venda Pessoal</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        <option value="Facebook">Facebook</option>
+                        <option value="E-commerce">E-commerce</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 12px; color: #aaa; display: block; margin-bottom: 5px;">Frete:</label>
+                    <div class="money-input-container" style="width: 100%; box-sizing: border-box;">
+                        <span class="money-symbol">R$</span>
+                        <input type="number" id="edit-frete" step="0.01" style="width: 100%;">
+                    </div>
+                </div>
+            </div>
 
+            <!-- TABELA DE CÉDULAS -->
+            <!-- O container abaixo tem rolagem horizontal e vertical independentes -->
+            <div style="max-height: 35vh; overflow: auto; border: 1px solid var(--border-color); border-radius: 5px; margin-bottom: 20px;">
+                <table style="width: 100%; margin-top: 0; white-space: nowrap;">
+                    <thead>
+                        <tr>
+                            <th style="padding-left: 15px;">Data</th>
+                            <th>Ref. / Lote</th>
+                            <th>País</th>
+                            <th>Valor</th>
+                            <th>Pick</th>
+                            <th>Ano</th>
+                            <th>Estado</th>
+                            <th>Qtd</th>
+                            <th>Martelo</th>
+                            <th>Taxa (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpo-tabela-edicao">
+                        <!-- Preenchido via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- BOTÕES DE AÇÃO -->
+            <div class="modal-actions" style="justify-content: flex-end; margin-top: 0;">
+                <button class="btn btn-outline" onclick="fecharModalEdicao()" style="margin-right: 10px;">Cancelar</button>
+                <button class="btn" onclick="salvarEdicaoLote()">Salvar Alterações</button>
+            </div>
+            
+        </div>
+    </div>
+       
     <!-- MODAL DE ALERTA CUSTOMIZADO -->
     <div class="modal-overlay" id="modal-alerta">
         <div class="modal-box" style="max-width: 450px;">
@@ -1357,7 +1421,7 @@
             }
         }
 
-        function renderizarListaPesquisa(cedulas) {
+        function renderizarListaPesquisa(cedulas) {            
             const container = document.getElementById('lista-pesquisa');
             const contador = document.getElementById('contador-pesquisa');
             
@@ -1411,22 +1475,27 @@
                         </div>
                     </div>
                     
-                    <div style="text-align: right; margin-right: 15px;">
-                        <div style="font-size: 11px; color: #888; margin-bottom: 3px;">Custo Final (com Frete)</div>
-                        <div class="valor-formatado" style="font-weight: bold; font-size: 16px; color: var(--gold-accent);">${valorFormatado}</div>
-                        <div style="font-size: 10px; color: #aaa;">Estado: ${c.estado} | Qtd: ${c.quantidade}</div>
-                        <div class="detalhe-custo" style="font-size: 9px; color: #666; margin-top: 2px;">
-    Base: R$ <span class="valor-base">${c.custo_base.toFixed(2)}</span> | Frete: R$ <span class="valor-frete">${c.rateio.toFixed(2)}</span>
-</div>
-                    </div>
-                    <div>
-                        <button class="btn btn-danger" style="padding: 8px; font-size: 12px;" onclick="excluirLote(${c.id}, ${c.lote_id})">🗑️ Excluir</button>
+                    <div style="display: flex; align-items: center; gap: 20px; margin-right: 15px;">
+                        <!-- Bloco de Valores -->
+                        <div style="text-align: right;">
+                            <div style="font-size: 11px; color: #888; margin-bottom: 3px;">Custo Final (com Frete)</div>
+                            <div class="valor-formatado" style="font-weight: bold; font-size: 16px; color: var(--gold-accent);">${valorFormatado}</div>
+                            <div style="font-size: 10px; color: #aaa;">Estado: ${c.estado} | Qtd: ${c.quantidade}</div>
+                            <div class="detalhe-custo" style="font-size: 9px; color: #666; margin-top: 2px;">
+                                Base: R$ <span class="valor-base">${c.custo_base.toFixed(2)}</span> | Frete: R$ <span class="valor-frete">${c.rateio.toFixed(2)}</span>
+                            </div>
+                        </div>
+
+                        <!-- Bloco de Botões -->
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-outline" style="padding: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 16px;" onclick="abrirModalEdicaoLote(${c.lote_id})" title="Editar Lote">✏️</button>
+                            <button class="btn btn-outline" style="padding: 0; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; font-size: 16px; border-color: #ff4d4d; color: #ff4d4d;" onclick="excluirLote(${c.id}, ${c.lote_id})" title="Excluir">🗑️</button>
+                        </div>
                     </div>
                 `;
                 
                 container.appendChild(card);
             });
-            // A atualização do gráfico agora é feita apenas no FiltroManager       
         }
 
         let meuGrafico = null;
@@ -2133,6 +2202,111 @@
                 }
             }
         }
+
+        // --- LÓGICA DE EDITAR LOTE ---
+        let loteEmEdicaoId = null;
+
+        async function abrirModalEdicaoLote(lote_id) {
+            loteEmEdicaoId = lote_id;
+            document.body.style.overflow = 'hidden'; // Trava a rolagem de fundo
+            document.getElementById('modal-editar-lote').style.display = 'flex';
+            const tbody = document.getElementById('corpo-tabela-edicao');
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Carregando...</td></tr>';
+
+            try {
+                const res = await fetch(`/api/lote/${lote_id}`);
+                const data = await res.json();
+                
+                if (!res.ok) throw new Error(data.erro);
+
+                document.getElementById('edit-vendedor').value = data.vendedor;
+                document.getElementById('edit-origem').value = data.origem;
+                document.getElementById('edit-frete').value = data.frete;
+
+                tbody.innerHTML = '';
+                const estados = ["FE", "S/FE", "S", "MBC/S", "MBC", "BC/MBC", "BC", "R", "UTG"];
+                                
+                data.cedulas.forEach(c => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><input type="text" class="edit-data" value="${c.data_compra || ''}" style="width:90px;" placeholder="DD/MM/AAAA"></td>
+                        <td><input type="text" class="edit-ref" value="${c.ref_lote || ''}" style="width:60px;" placeholder="Lote"></td>
+                        <td><input type="text" class="edit-pais" value="${c.pais}" style="width:90px;" data-id="${c.id}"></td>
+                        <td><input type="text" class="edit-valor" value="${c.valor_facial}" style="width:80px;"></td>
+                        <td><input type="text" class="edit-pick" value="${c.catalogo || ''}" style="width:60px;"></td>
+                        <td><input type="text" class="edit-ano" value="${c.ano}" style="width:50px;"></td>
+                        <td>
+                            <select class="edit-estado" style="width:70px;">
+                                ${estados.map(e => `<option value="${e}" ${e === c.estado ? 'selected' : ''}>${e}</option>`).join('')}
+                            </select>
+                        </td>
+                        <td><input type="number" class="edit-qtd" value="${c.quantidade}" style="width:50px;"></td>
+                        <td><input type="number" class="edit-martelo" value="${c.martelo}" step="0.01" style="width:80px;"></td>
+                        <td><input type="number" class="edit-taxa" value="${c.taxa_leilao || 0}" step="0.01" style="width:60px;"></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (e) {
+                mostrarAlerta("❌ Erro", "Não foi possível carregar os dados do lote.", "erro");
+                fecharModalEdicao();
+            }
+        }
+
+        function fecharModalEdicao() {
+            document.getElementById('modal-editar-lote').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Destrava a rolagem de fundo
+            loteEmEdicaoId = null;
+        }
+
+        async function salvarEdicaoLote() {
+            const linhas = document.querySelectorAll('#corpo-tabela-edicao tr');
+            const cedulasAtualizadas = [];
+
+            linhas.forEach(li => {
+                const id = li.querySelector('.edit-pais').getAttribute('data-id');
+                cedulasAtualizadas.push({
+                    id: id,
+                    data_compra: li.querySelector('.edit-data').value,
+                    ref_lote: li.querySelector('.edit-ref').value,
+                    pais: li.querySelector('.edit-pais').value,
+                    valor_facial: li.querySelector('.edit-valor').value,
+                    catalogo: li.querySelector('.edit-pick').value,
+                    ano: li.querySelector('.edit-ano').value,
+                    estado: li.querySelector('.edit-estado').value,
+                    quantidade: parseInt(li.querySelector('.edit-qtd').value) || 1,
+                    martelo: parseFloat(li.querySelector('.edit-martelo').value) || 0,
+                    taxa_leilao: parseFloat(li.querySelector('.edit-taxa').value) || 0
+                });
+            });
+
+            const dados = {
+                vendedor: document.getElementById('edit-vendedor').value,
+                origem: document.getElementById('edit-origem').value,
+                frete: parseFloat(document.getElementById('edit-frete').value) || 0,
+                cedulas: cedulasAtualizadas
+            };
+
+            try {
+                const res = await fetch(`/api/editar_lote/${loteEmEdicaoId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dados)
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    mostrarAlerta("✅ Sucesso", data.mensagem, "sucesso");
+                    fecharModalEdicao();
+                    carregarDadosPesquisa(); // Recarrega a lista
+                } else {
+                    mostrarAlerta("❌ Erro", data.erro, "erro");
+                }
+            } catch (e) {
+                mostrarAlerta("❌ Erro", "Falha ao conectar com o servidor.", "erro");
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             // Inicializa a classe de filtros
             filtroManager = new FiltroManager(); 

@@ -1,98 +1,83 @@
 import os
-import shutil
 import unicodedata
 from PIL import Image
 import json
 
 # --- CONFIGURAÇÕES DE PASTAS ---
-ORIGEM_PNG = os.path.join("New_flags") # Pasta onde você salva as imagens baixadas
-DESTINO = os.path.join("static", "img", "flags") # Pasta onde o sistema lê
+DESTINO = os.path.join("static", "img", "flags") 
 ARQUIVO_MAPA = os.path.join("static", "js", "mapa_bandeiras.js")
-LARGURA_MAXIMA = 40
 
 # --- DICIONÁRIO DE TRADUÇÃO ---
-# Adicione aqui os países que têm nomes diferentes do português
 TRADUCOES = {
     "AFGHANISTAN": "AFEGANISTAO", "GERMANY": "ALEMANHA", "ARGENTINA": "ARGENTINA",
     "AUSTRALIA": "AUSTRALIA", "AUSTRIA": "AUSTRIA", "BELGIUM": "BELGICA",
     "BRAZIL": "BRASIL", "CANADA": "CANADA", "CHILE": "CHILE", "CHINA": "CHINA",
     "COLOMBIA": "COLOMBIA", "CUBA": "CUBA", "DENMARK": "DINAMARCA",
-    "EGYPT": "EGITO", "SPAIN": "ESPANHA", "USA": "ESTADOS_UNIDOS", "ESTADOS_UNIDOS_DA_AMERICA": "ESTADOS_UNIDOS",
+    "EGYPT": "EGITO", "SPAIN": "ESPANHA", "USA": "ESTADOS_UNIDOS", 
+    "ESTADOS_UNIDOS_DA_AMERICA": "ESTADOS_UNIDOS", "UNITED_STATES": "ESTADOS_UNIDOS",
     "FRANCE": "FRANCA", "GREECE": "GRECIA", "NETHERLANDS": "HOLANDA",
     "HUNGARY": "HUNGRIA", "INDIA": "INDIA", "INDONESIA": "INDONESIA",
     "IRAN": "IRA", "IRAQ": "IRAQUE", "IRELAND": "IRLANDA", "ISRAEL": "ISRAEL",
     "ITALY": "ITALIA", "JAPAN": "JAPAO", "MEXICO": "MEXICO", "NIGERIA": "NIGERIA",
-    "NORWAY": "NORUEGA", "NEW ZEALAND": "NOVA_ZELANDIA", "PAKISTAN": "PAQUISTAO",
+    "NORWAY": "NORUEGA", "NEW_ZEALAND": "NOVA_ZELANDIA", "PAKISTAN": "PAQUISTAO",
     "PARAGUAY": "PARAGUAI", "PERU": "PERU", "POLAND": "POLONIA", "PORTUGAL": "PORTUGAL",
-    "UNITED KINGDOM": "REINO_UNIDO", "CZECH REPUBLIC": "REPUBLICA_TCHECA",
+    "UNITED_KINGDOM": "REINO_UNIDO", "CZECH_REPUBLIC": "REPUBLICA_TCHECA",
     "ROMANIA": "ROMENIA", "RUSSIA": "RUSSIA", "SWEDEN": "SUECIA", "SWITZERLAND": "SUICA",
     "THAILAND": "TAILANDIA", "TURKEY": "TURQUIA", "UKRAINE": "UCRANIA",
     "URUGUAY": "URUGUAI", "VENEZUELA": "VENEZUELA", "VIETNAM": "VIETNA",
     "CZECHOSLOVAKIA": "TCHECOSLOVAQUIA", "YUGOSLAVIA": "IUGOSLAVIA",
-    "SOVIET UNION": "UNIAO_SOVIETICA", "SOUTH AFRICA": "AFRICA_DO_SUL",
-    "ANGOLA": "ANGOLA", "MOZAMBIQUE": "MOCAMBIQUE", "CAPE VERDE": "CABO_VERDE",
-    "GUINEA-BISSAU": "GUINE_BISSAU", "SAO TOME E PRINCIPE": "SAO_TOME_E_PRINCIPE",
-    "BOSNIA AND HERZEGOVINA": "BOSNIA_E_HERZEGOVINA", "KOREA, SOUTH": "COREIA_DO_SUL",
-    "NORTH MACEDONIA": "MACEDONIA_DO_NORTE", "SAINT KITTS AND NEVIS": "SAO_CRISTOVAO_E_NEVIS",
-    "TRINIDAD AND TOBAGO": "TRINIDAD_E_TOBAGO", "UNITED STATES": "ESTADOS_UNIDOS"
+    "SOUTH_AFRICA": "AFRICA_DO_SUL", "CAPE_VERDE": "CABO_VERDE",
+    "BOSNIA_AND_HERZEGOVINA": "BOSNIA_E_HERZEGOVINA", "KOREA,_SOUTH": "COREIA_DO_SUL",
+    "NORTH_MACEDONIA": "MACEDONIA_DO_NORTE", "SAINT_KITTS_AND_NEVIS": "SAO_CRISTOVAO_E_NEVIS",
+    "TRINIDAD_AND_TOBAGO": "TRINIDAD_E_TOBAGO"
 }
 
 def limpar_nome(texto):
     # Remove acentos e formata para maiúsculo com underline
-    return ''.join(c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn').upper().replace(" ", "_").replace("-", "_")
+    texto_sem_acento = ''.join(c for c in unicodedata.normalize('NFD', texto) if unicodedata.category(c) != 'Mn')
+    return texto_sem_acento.upper().replace(" ", "_").replace("-", "_")
 
 def processar_bandeiras():
-    if not os.path.exists(ORIGEM_PNG) or not os.path.exists(DESTINO):
-        print("❌ Verifique se as pastas 'Bandeira_png' e 'static/img/flags' existem.")
+    if not os.path.exists(DESTINO):
+        print(f"❌ A pasta {DESTINO} não existe.")
         return
 
-    # 1. Lê os arquivos que já existem no destino para não sobrescrever
-    arquivos_existentes = set(os.listdir(DESTINO))
-    arquivos_origem = os.listdir(ORIGEM_PNG)
-    
-    convertidos = 0
-    pulados = 0
+    arquivos = os.listdir(DESTINO)
+    renomeados = 0
 
-    print("⏳ Processando bandeiras...\n")
+    print("⏳ Traduzindo e renomeando bandeiras na pasta final...\n")
 
-    for arquivo in arquivos_origem:
-        if arquivo.lower().endswith(('.png', '.jpg', '.jpeg', '.tif')):
+    # 1. Renomeia os arquivos dentro da própria pasta static/img/flags
+    for arquivo in arquivos:
+        if arquivo.lower().endswith('.png'):
             nome_base = os.path.splitext(arquivo)[0]
             nome_limpo = limpar_nome(nome_base)
             
-            # Traduz o nome se estiver no dicionário, senão usa o nome limpo
-            nome_final_pt = TRADUCOES.get(nome_limpo, nome_limpo)
-            arquivo_destino = f"{nome_final_pt}.png"
-            
-            # Se o arquivo já existe no destino, pula (economiza tempo)
-            if arquivo_destino in arquivos_existentes:
-                pulados += 1
-                continue
+            # Se o nome estiver no dicionário de tradução, renomeia
+            if nome_limpo in TRADUCOES:
+                nome_final_pt = TRADUCOES[nome_limpo]
+                novo_nome = f"{nome_final_pt}.png"
                 
-            caminho_orig = os.path.join(ORIGEM_PNG, arquivo)
-            caminho_dest = os.path.join(DESTINO, arquivo_destino)
-            
-            try:
-                with Image.open(caminho_orig) as img:
-                    img = img.convert("RGBA")
-                    proporcao = LARGURA_MAXIMA / float(img.width)
-                    nova_altura = int((float(img.height) * float(proporcao)))
-                    img_redimensionada = img.resize((LARGURA_MAXIMA, nova_altura), Image.Resampling.LANCZOS)
-                    img_redimensionada.save(caminho_dest, format="PNG", optimize=True)
-                    
-                print(f"✅ Importado e traduzido: {arquivo} -> {arquivo_destino}")
-                convertidos += 1
-            except Exception as e:
-                print(f"❌ Erro ao converter {arquivo}: {e}")
+                caminho_antigo = os.path.join(DESTINO, arquivo)
+                caminho_novo = os.path.join(DESTINO, novo_nome)
+                
+                # Se o arquivo com o nome novo ainda não existe, renomeia
+                if not os.path.exists(caminho_novo):
+                    try:
+                        os.rename(caminho_antigo, caminho_novo)
+                        print(f"✅ Renomeado: {arquivo} -> {novo_nome}")
+                        renomeados += 1
+                    except Exception as e:
+                        print(f"❌ Erro ao renomear {arquivo}: {e}")
 
-    # 2. Atualiza o arquivo mapa_bandeiras.js
+    # 2. Atualiza o arquivo mapa_bandeiras.js com os nomes atualizados
     print("\n🔄 Atualizando o mapa de bandeiras para o JavaScript...")
     
     mapa_final = {}
+    # Lê novamente a pasta agora que os arquivos foram renomeados
     for arq in os.listdir(DESTINO):
         if arq.lower().endswith('.png'):
             nome_sem_ext = os.path.splitext(arq)[0]
-            # Cria duas versões no mapa: a com underline e a com espaços
             mapa_final[nome_sem_ext] = arq
             mapa_final[nome_sem_ext.replace("_", " ").title()] = arq
 
@@ -103,7 +88,7 @@ def processar_bandeiras():
         f.write(json.dumps(mapa_final, indent=4, ensure_ascii=False))
         f.write(";\n")
         
-    print(f"🎉 Finalizado! {convertidos} novas bandeiras adicionadas. {pulados} já existiam e foram puladas.")
+    print(f"🎉 Finalizado! {renomeados} bandeiras traduzidas e renomeadas.")
     print(f"✅ Arquivo '{ARQUIVO_MAPA}' atualizado com {len(mapa_final)} nomes mapeados.")
 
 if __name__ == "__main__":
