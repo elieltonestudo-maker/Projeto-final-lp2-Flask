@@ -497,54 +497,62 @@
                 </div>
 
                 <!-- Direita: Botões de Importação (Compactos) -->
-                <div style="display: flex; gap: 10px; align-items: center;">
+                <div style="display: flex; gap: 15px; align-items: flex-end;">
                     
                     <!-- Botão Texto -->
-                    <button class="btn btn-outline" onclick="abrirModalTexto()" title="Importar Texto (E-mail/WhatsApp)" style="font-size: 18px; padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                        📝
-                    </button>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                        <span style="font-size: 10px; color: #aaa;">Importar Texto</span>
+                        <button class="btn btn-outline" onclick="abrirModalTexto()" title="Importar Texto (E-mail/WhatsApp)" style="font-size: 18px; padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                            📝
+                        </button>
+                    </div>
                     
                     <!-- Botão PDF -->
                     <form id="form-pdf" action="/processar_pdf" method="POST" enctype="multipart/form-data" style="display: inline;" onsubmit="event.preventDefault(); processarArquivo(this);">
                         <input type="file" name="arquivo_pdf" id="input-pdf" accept=".pdf" style="display: none;" onchange="document.getElementById('form-pdf').requestSubmit();">
-                        <button type="button" class="btn btn-outline" onclick="document.getElementById('input-pdf').click();" title="Importar PDF" style="padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
-                            
-                            <!-- Ícone Fake de PDF (Ajustado) -->
-                            <div style="position: relative; width: 15px; height: 19px; border: 1.5px solid #ff4d4d; border-radius: 2px; background-color: white; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 1px; box-sizing: border-box; overflow: hidden;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                            <span style="font-size: 10px; color: #aaa;">Importar PDF</span>
+                            <button type="button" class="btn btn-outline" onclick="document.getElementById('input-pdf').click();" title="Importar PDF" style="padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
                                 
-                                <!-- Dobra do papel (Triângulo) -->
-                                <div style="position: absolute; top: -1.5px; right: -1.5px; width: 0; height: 0; border-style: solid; border-width: 0 7px 7px 0; border-color: transparent #2a2a2a transparent transparent; z-index: 2;"></div>
+                                <!-- Ícone Fake de PDF (Ajustado) -->
+                                <div style="position: relative; width: 15px; height: 19px; border: 1.5px solid #ff4d4d; border-radius: 2px; background-color: white; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 1px; box-sizing: border-box; overflow: hidden;">
+                                    <div style="position: absolute; top: -1.5px; right: -1.5px; width: 0; height: 0; border-style: solid; border-width: 0 7px 7px 0; border-color: transparent #2a2a2a transparent transparent; z-index: 2;"></div>
+                                    <div style="position: absolute; top: -1.5px; right: -1.5px; width: 0; height: 0; border-style: solid; border-width: 8px 8px 8px 0; border-color: transparent #ff4d4d transparent transparent; z-index: 1;"></div>
+                                    <span style="font-size: 6px; font-weight: 900; color: #ff4d4d; line-height: 1; z-index: 3;">PDF</span>
+                                </div>
                                 
-                                <!-- Contorno da dobra -->
-                                <div style="position: absolute; top: -1.5px; right: -1.5px; width: 0; height: 0; border-style: solid; border-width: 8px 8px 8px 0; border-color: transparent #ff4d4d transparent transparent; z-index: 1;"></div>
-
-                                <!-- Texto PDF -->
-                                <span style="font-size: 6px; font-weight: 900; color: #ff4d4d; line-height: 1; z-index: 3;">PDF</span>
-                            </div>
-                            
-                        </button>
+                            </button>
+                        </div>
                     </form>
 
                     <!-- Botão Print -->
-                    <button class="btn btn-outline" onclick="colarPrint()" title="Colar Print (Ctrl+V)" style="font-size: 18px; padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-style: dashed;">
-                        📋
-                    </button>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                        <span style="font-size: 10px; color: #aaa;">Colar Print</span>
+                        <button class="btn btn-outline" onclick="colarPrint()" title="Colar Print (Ctrl+V)" style="font-size: 18px; padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-style: dashed;">
+                            📋
+                        </button>
+                    </div>
                     
                 </div>
 
             </div>
             <!-- 👆 FIM DO PAINEL DE AÇÕES E IMPORTAÇÃO 👆 -->
-            <table>
-                <thead>
-                    <tr>
-                        <th><input type="checkbox" id="check-todos" onclick="selecionarTodos(this)"></th>
-                        <th>Nº</th><th>Data</th><th>Ref. / Lote</th><th>País</th><th>Valor</th><th>Pick</th><th>Ano</th><th>Estado</th>
-                        <th>Qtd</th>
-                        <th>Martelo</th><th>Taxa (%)</th><th>Subtotal</th><th>Rateio</th><th>Custo Final</th><th>Ação</th>
-                    </tr>
-                </thead>
-                <tbody id="corpo-tabela"></tbody>
-            </table>
+            
+            <!-- 👇 NOVA DIV COM ROLAGEM 👇 -->
+            <div style="width: 100%; overflow-x: auto; max-height: 450px; overflow-y: auto; margin-top: 15px; border-radius: 5px;">
+                <table style="margin-top: 0;">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="check-todos" onclick="selecionarTodos(this)"></th>
+                            <th>Nº</th><th>Data</th><th>Ref. / Lote</th><th>País</th><th>Valor</th><th>Pick</th><th>Ano</th><th>Estado</th>
+                            <th>Qtd</th>
+                            <th>Martelo</th><th>Taxa (%)</th><th>Subtotal</th><th>Rateio</th><th>Custo Final</th><th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpo-tabela"></tbody>
+                </table>
+            </div>
+            <!-- 👆 FIM DA DIV COM ROLAGEM 👆 -->
             <button class="btn-add-linha" onclick="adicionarLinhaVazia()" title="Adicionar cédula">+</button>
 
             <div class="totais-rodape">
