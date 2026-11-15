@@ -368,27 +368,79 @@ def create_app():
                     db.session.add(v)
                     db.session.flush()
                 lote.vendedor_id = v.id
+
+            # 👇 NOVO BLOCO: EXCLUIR AS CÉDULAS QUE FORAM REMOVIDAS NO MODAL 👇
+            # Pega todos os IDs de cédulas que o usuário deixou no modal
+            ids_enviados = [str(c.get('id')) for c in dados.get('cedulas', [])]
             
-            # Atualiza as cédulas
+            # Pega todas as cédulas do lote no banco
+            cedulas_no_banco = Cedula.query.filter_by(lote_id=lote.id).all()
+            
+            # Se a cédula está no banco, mas o ID dela não está na lista do modal, é porque ela foi excluída
+            for cedula_banco in cedulas_no_banco:
+                if str(cedula_banco.id) not in ids_enviados:
+                    db.session.delete(cedula_banco)
+                    print(f"🗑️ CÉDULA APAGADA DO BANCO: {cedula_banco.pais}")
+                    
+            # 👆 FIM DO NOVO BLOCO 👆
+            
+            # Atualiza as cédulas existentes ou cria novas
             for c_data in dados.get('cedulas', []):
-                cedula = Cedula.query.get(c_data.get('id'))
-                if cedula and cedula.lote_id == lote.id:
-                    cedula.data_compra = c_data.get('data_compra', cedula.data_compra) 
-                    cedula.ref_lote = c_data.get('ref_lote', cedula.ref_lote) 
-                    cedula.pais = c_data.get('pais', cedula.pais)
-                    cedula.valor_facial = c_data.get('valor_facial', cedula.valor_facial)
-                    cedula.catalogo = c_data.get('catalogo', cedula.catalogo) 
-                    cedula.ano = c_data.get('ano', cedula.ano)
-                    cedula.estado = c_data.get('estado', cedula.estado)
-                    cedula.quantidade = int(c_data.get('quantidade', 1))
-                    cedula.martelo = float(c_data.get('martelo', 0.0))
-                    cedula.taxa_leilao = float(c_data.get('taxa_leilao', 0.0)) 
+                c_id = str(c_data.get('id', ''))
+                
+                # Previne erro de campo vazio
+                try:
+                    qtd = int(c_data.get('quantidade', 1)) if c_data.get('quantidade') else 1
+                    martelo = float(c_data.get('martelo', 0.0)) if c_data.get('martelo') else 0.0
+                    taxa = float(c_data.get('taxa_leilao', 0.0)) if c_data.get('taxa_leilao') else 0.0
+                except ValueError:
+                    qtd, martelo, taxa = 1, 0.0, 0.0 
+                
+                # Se o ID não começar com 'new_', ele TENTA buscar no banco. Se não achar, ele IGNORA.
+                # Mas para evitar que cédulas novas sejam ignoradas, verificamos se o ID é numérico.
+                if c_id.startswith('new_') or not c_id.isdigit():
+                    # É UMA CÉDULA NOVA
+                    nova_cedula = Cedula(
+                        lote_id=lote.id,
+                        pais=c_data.get('pais', 'Desconhecido') or 'Desconhecido',
+                        valor_facial=c_data.get('valor_facial', '') or '',
+                        catalogo=c_data.get('catalogo', '') or '',
+                        ano=c_data.get('ano', '') or '',
+                        estado=c_data.get('estado', 'R') or 'R',
+                        quantidade=qtd,
+                        data_compra=c_data.get('data_compra', '') or '',
+                        ref_lote=c_data.get('ref_lote', '') or '',
+                        martelo=martelo,
+                        taxa_leilao=taxa
+                    )
+                    db.session.add(nova_cedula)
+                    print(f"✅ NOVA CÉDULA ADICIONADA NA MEMÓRIA: {nova_cedula.pais}")
+                else:
+                    # É UMA CÉDULA EXISTENTE
+                    cedula = Cedula.query.get(int(c_id))
+                    if cedula and cedula.lote_id == lote.id:
+                        cedula.data_compra = c_data.get('data_compra', '') or ''
+                        cedula.ref_lote = c_data.get('ref_lote', '') or ''
+                        cedula.pais = c_data.get('pais', '') or ''
+                        cedula.valor_facial = c_data.get('valor_facial', '') or ''
+                        cedula.catalogo = c_data.get('catalogo', '') or '' 
+                        cedula.ano = c_data.get('ano', '') or ''
+                        cedula.estado = c_data.get('estado', 'R') or 'R'
+                        cedula.quantidade = qtd
+                        cedula.martelo = martelo
+                        cedula.taxa_leilao = taxa
             
             db.session.commit()
+            print("✅ DEBUG: LOTE E CÉDULAS SALVOS NO BANCO COM SUCESSO!")
             return jsonify({'mensagem': 'Lote atualizado com sucesso!'}), 200
+            
         except Exception as e:
             db.session.rollback()
-            return jsonify({'erro': str(e)}), 500 
+            print("\n" + "="*50)
+            print("❌ ERRO FATAL AO SALVAR NO BANCO:")
+            print(str(e))
+            print("="*50 + "\n")
+            return jsonify({'erro': str(e)}), 500
     
     @app.route('/api/exportar/<formato>', methods=['GET'])
     def api_exportar(formato):

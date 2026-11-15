@@ -157,12 +157,12 @@
 
                 <div>
                     <label id="label-filtro-min" style="font-size: 13px; color: #aaa; display: block; margin-bottom: 5px;">Qtd Mínima:</label>
-                    <input type="number" id="filtro-min" step="any" placeholder="Ex: 1" style="width: 100%;">
+                    <input type="number" id="filtro-min" step="any" placeholder="Ex: 1" style="width: 100%; box-sizing: border-box;">
                 </div>
                 
                 <div>
                     <label id="label-filtro-max" style="font-size: 13px; color: #aaa; display: block; margin-bottom: 5px;">Qtd Máxima:</label>
-                    <input type="number" id="filtro-max" step="any" placeholder="Ex: 10" style="width: 100%;">
+                    <input type="number" id="filtro-max" step="any" placeholder="Ex: 10" style="width: 100%; box-sizing: border-box;">
                 </div>
                 <!-- 👆 FIM DO NOVO BLOCO 👆 -->
 
@@ -323,8 +323,7 @@
             </div>
 
             <!-- TABELA DE CÉDULAS -->
-            <!-- O container abaixo tem rolagem horizontal e vertical independentes -->
-            <div style="max-height: 35vh; overflow: auto; border: 1px solid var(--border-color); border-radius: 5px; margin-bottom: 20px;">
+            <div style="max-height: 35vh; overflow: auto; border: 1px solid var(--border-color); border-radius: 5px; margin-bottom: 15px;">
                 <table style="width: 100%; margin-top: 0; white-space: nowrap;">
                     <thead>
                         <tr>
@@ -338,12 +337,20 @@
                             <th>Qtd</th>
                             <th>Martelo</th>
                             <th>Taxa (%)</th>
+                            <th>Ação</th>
                         </tr>
                     </thead>
                     <tbody id="corpo-tabela-edicao">
                         <!-- Preenchido via JavaScript -->
                     </tbody>
                 </table>
+            </div>
+
+            <!-- 👇 BOTÃO DE ADICIONAR NOVA CÉDULA (REDONDO) 👇 -->
+            <div style="margin-bottom: 20px; text-align: left;">
+                <button type="button" class="btn-add-linha" onclick="adicionarLinhaEdicao()" title="Adicionar cédula ao lote" style="position: static; transform: none;">
+                    +
+                </button>
             </div>
 
             <!-- BOTÕES DE AÇÃO -->
@@ -578,34 +585,63 @@
         <!-- Painel de Busca -->
         <div class="panel" style="padding-bottom: 20px;">
             <div style="display: flex; align-items: center; gap: 15px;">
-                <label style="margin: 0; color: var(--text-color);">Buscar:</label>
-                <input type="text" id="input-busca" placeholder="Filtre por país, vendedor ou descrição..." style="width: 450px;">
-                <button class="btn btn-outline" id="btn-abrir-filtros" style="white-space: nowrap;">⚙️ Filtros Avançados</button>
-                <button class="btn btn-outline" onclick="abrirModalExportacao()" style="white-space: nowrap;">📥 Exportar Relatório</button>            
+                
+                <label style="margin: 0; color: var(--text-color);">Buscar:</label>                
+                               
+                <!-- 👇 CAMPO DE BUSCA COM O "X" 👇 -->
+                <div style="position: relative; display: inline-block;">
+                    <input type="text" id="input-busca" placeholder="Filtre por país, vendedor ou descrição..." style="width: 450px; padding-right: 35px;" autocomplete="off">
+                    
+                    <!-- Botão "X" para limpar apenas o texto (hover vermelho) -->
+                    <button onclick="document.getElementById('input-busca').value=''; filtroManager.aplicarFiltros();" 
+                            style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #888; cursor: pointer; font-size: 16px; font-weight: bold; transition: color 0.2s;" 
+                            onmouseover="this.style.color='#ff4d4d'; this.style.transform='translateY(-50%) scale(1.2)';" 
+                            onmouseout="this.style.color='#888'; this.style.transform='translateY(-50%) scale(1)';"
+                            title="Limpar busca">
+                        ✖
+                    </button>
+                </div>
+
+                <!-- 👇 GRUPO 1: AÇÕES DE FILTRO 👇 -->
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-outline" id="btn-abrir-filtros" style="white-space: nowrap;">⚙️ Filtros Avançados</button>
+                    <button class="btn btn-outline" onclick="filtroManager.limparFiltros()" style="padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 18px;" title="Limpar Filtros e Busca">🧹</button>
+                </div>
+
+                <!-- ESPAÇADOR INVISÍVEL (Empurra os próximos botões para a direita) -->
+                <div style="flex: 1;"></div>
+
+                <!-- 👇 GRUPO 2: AÇÕES FINAIS (Exportar e Atualizar) 👇 -->
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-outline" onclick="abrirModalExportacao()" style="white-space: nowrap;">📥 Exportar Relatório</button>            
+                    <button class="btn btn-outline" onclick="carregarDadosPesquisa()" style="padding: 0; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 18px;" title="Atualizar Lista de Cédulas">
+                        🔄
+                    </button>
+                </div>
+                
             </div>
         </div> <!-- FECHA O PAINEL DE BUSCA -->
 
-        <!-- MUDANÇA AQUI: Layout em coluna única -->
+        <!-- Layout em coluna única -->
         <div style="display: flex; flex-direction: column; gap: 20px;">
             
-        <div class="panel" style="max-height: 400px; overflow-y: auto;">
-            <!-- Cabeçalho com Contador e Resumo -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
-                <h3 class="panel-title" style="margin: 0;">Cédulas Encontradas (<span id="contador-pesquisa">0</span>)</h3>
-                <div id="resumo-pesquisa" style="font-size: 13px; color: #aaa; background: #2a2a2a; padding: 5px 10px; border-radius: 5px;">
-                    <!-- Preenchido via JavaScript -->
+            <div class="panel" style="max-height: 400px; overflow-y: auto;">
+                <!-- Cabeçalho com Contador e Resumo -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                    <h3 class="panel-title" style="margin: 0;">Cédulas Encontradas (<span id="contador-pesquisa">0</span>)</h3>
+                    <div id="resumo-pesquisa" style="font-size: 13px; color: #aaa; background: #2a2a2a; padding: 5px 10px; border-radius: 5px;">
+                        <!-- Preenchido via JavaScript -->
+                    </div>
                 </div>
-            </div>
 
-            <div id="lista-pesquisa" style="display: flex; flex-direction: column; gap: 10px;">
-                <p style="color: #888; text-align: center;">Carregando dados do banco...</p>
-            </div>
-        </div> <!-- FECHA O PAINEL DA LISTA --> 
+                <div id="lista-pesquisa" style="display: flex; flex-direction: column; gap: 10px;">
+                    <p style="color: #888; text-align: center;">Carregando dados do banco...</p>
+                </div>
+            </div> <!-- FECHA O PAINEL DA LISTA --> 
 
             <!-- Gráfico em Largura Total -->
             <div class="panel" style="display: flex; flex-direction: column; text-align: center; width: 100%; max-width: 900px; margin: 0 auto;">
                 <h3 class="panel-title" style="margin-bottom: 15px;">📊 Aquisições por País</h3>
-                <!-- Aumentamos a altura para caber os países (ele cresce conforme a necessidade) -->
                 <div id="container-grafico" style="width: 100%; height: 500px; position: relative;">
                     <canvas id="grafico-paises"></canvas>
                 </div>
@@ -1110,36 +1146,67 @@
             const linha = btn.closest('tr');
             document.getElementById('modal-mensagem').innerText = "Excluir esta cédula?";
             document.getElementById('modal-confirmacao').style.display = 'flex';
+            
             document.getElementById('btn-confirmar-exclusao').onclick = () => {
                 const linhaClonada = linha.cloneNode(true);
-                historicoExclusao.push(linhaClonada); 
+                
+                // Guarda como um pacote de 1 item para manter o padrão
+                historicoExclusao.push([linhaClonada]); 
+                
                 linha.remove(); 
-                atualizarNumeracao(); recalcularTabela(); fecharModal();
+                atualizarNumeracao(); 
+                recalcularTabela(); 
+                fecharModal();
             };
         }
 
         function abrirModalExclusaoMassa() {
             const sel = document.querySelectorAll('.check-selecao:checked');
             if (sel.length === 0) return mostrarAlerta("⚠️ Aviso", "Selecione alguma cédula.", "aviso");
+            
             document.getElementById('modal-mensagem').innerText = `Excluir ${sel.length} cédula(s)?`;
             document.getElementById('modal-confirmacao').style.display = 'flex';
+            
             document.getElementById('btn-confirmar-exclusao').onclick = () => {
+                // Cria um "pacote" para guardar tudo o que for excluído agora
+                const pacoteExclusao = []; 
+                
                 sel.forEach(cb => {
                     const linha = cb.closest('tr');
                     const linhaClonada = linha.cloneNode(true); 
-                    historicoExclusao.push(linhaClonada); 
+                    
+                    // Guarda no pacote e remove da tela
+                    pacoteExclusao.push(linhaClonada); 
                     linha.remove();
                 });
-                atualizarNumeracao(); recalcularTabela(); fecharModal();
+                
+                // Adiciona o pacote inteiro no histórico
+                historicoExclusao.push(pacoteExclusao); 
+                
+                atualizarNumeracao(); 
+                recalcularTabela(); 
+                fecharModal();
             };
         }
 
         function desfazerExclusao() {
             if (historicoExclusao.length === 0) return mostrarAlerta("⚠️ Aviso", "Não há exclusões recentes para desfazer.", "aviso");
+            
             const tbody = document.getElementById('corpo-tabela');
-            const linhaRestaurada = historicoExclusao.pop();
-            tbody.appendChild(linhaRestaurada);
-            atualizarNumeracao(); recalcularTabela();
+            
+            // Pega o último pacote de exclusão
+            const pacote = historicoExclusao.pop();
+            
+            // Se for um pacote (array), devolve todos. 
+            // Se for um item sozinho (do botão de excluir individual), devolve ele.
+            if (Array.isArray(pacote)) {
+                pacote.forEach(linhaRestaurada => tbody.appendChild(linhaRestaurada));
+            } else {
+                tbody.appendChild(pacote);
+            }
+            
+            atualizarNumeracao(); 
+            recalcularTabela();
         }
 
         function atualizarNumeracao() { document.querySelectorAll('#corpo-tabela tr').forEach((l,i) => { const td = l.querySelector('.td-numero'); if(td) td.innerText = i+1; }); }
@@ -1802,18 +1869,31 @@
             _configurarEventos() {
                 this.ui.btnAbrir.addEventListener('click', () => this.ui.modal.style.display = 'flex');
                 this.ui.btnFechar.addEventListener('click', () => this.ui.modal.style.display = 'none');
+                
                 this.ui.btnAplicar.addEventListener('click', () => {
                     this.ui.modal.style.display = 'none';
                     this.aplicarFiltros();
+                    this._verificarFiltrosAtivos(); // Atualiza a cor do botão
                 });
-                this.ui.btnLimpar.addEventListener('click', () => this.limparFiltros());
+                
+                this.ui.btnLimpar.addEventListener('click', () => {
+                    this.limparFiltros();
+                });
                 
                 // Busca em tempo real ao digitar no input principal
-                this.ui.inputBusca.addEventListener('input', () => this.aplicarFiltros());
+                this.ui.inputBusca.addEventListener('input', () => {
+                    this.aplicarFiltros();
+                });
 
-                // 👇 NOVO EVENTO: Quando mudar o tipo (Qtd ou Custo), atualiza os textos
+                // Monitora mudanças nos selects para atualizar a cor do botão
+                this.ui.selectVendedor.addEventListener('change', () => this._verificarFiltrosAtivos());
+                this.ui.selectContinente.addEventListener('change', () => this._verificarFiltrosAtivos());
+                this.ui.selectEstado.addEventListener('change', () => this._verificarFiltrosAtivos());
+
+                // Quando mudar o tipo (Qtd ou Custo), atualiza os textos e a cor do botão
                 this.ui.selectTipoFiltro.addEventListener('change', () => {
                     this._atualizarLabelsFiltro();
+                    this._verificarFiltrosAtivos();
                 });
             }
 
@@ -1837,6 +1917,27 @@
                 }
             }
 
+            // 👇 NOVO MÉTODO: Deixa o botão dourado se houver filtro ativo
+            _verificarFiltrosAtivos() {
+                const btn = document.getElementById('btn-abrir-filtros');
+                const temFiltro = (
+                    this.ui.selectVendedor.value !== '' || 
+                    this.ui.selectContinente.value !== '' || 
+                    this.ui.selectEstado.value !== '' || 
+                    this.ui.inputMin.value !== '' || 
+                    this.ui.inputMax.value !== '' ||
+                    this.ui.inputBusca.value !== ''
+                );
+
+                if (temFiltro) {
+                    btn.style.backgroundColor = 'var(--gold-accent)';
+                    btn.style.color = '#000';
+                } else {
+                    btn.style.backgroundColor = 'transparent';
+                    btn.style.color = 'var(--gold-accent)';
+                }
+            }
+
             atualizarDados(dados) {
                 this.listaOriginal = dados;
                 this._preencherVendedores();
@@ -1855,13 +1956,14 @@
                 this.ui.selectVendedor.value = '';
                 this.ui.selectContinente.value = '';
                 this.ui.selectEstado.value = '';
-                this.ui.selectTipoFiltro.value = 'quantidade'; // Reseta para o padrão
+                this.ui.selectTipoFiltro.value = 'quantidade'; 
                 this.ui.inputMin.value = ''; 
                 this.ui.inputMax.value = ''; 
                 this.ui.selectOrdem.value = 'recente';
                 this.ui.inputBusca.value = '';
                 
-                this._atualizarLabelsFiltro(); // Atualiza as labels para o padrão
+                this._atualizarLabelsFiltro(); 
+                this._verificarFiltrosAtivos(); // Reseta a cor do botão
                 this.aplicarFiltros();
             }
 
@@ -1879,10 +1981,11 @@
                 const valorMin = parseFloat(this.ui.inputMin.value) || 0; 
                 const valorMax = parseFloat(this.ui.inputMax.value) || Infinity; 
 
-                const palavras = this._normalizar(termo).split(' ').filter(p => p.length > 0);
+                // 1. Prepara o termo de busca (minúsculo e sem acento)
+                const termoBusca = this._normalizar(termo || "");
 
                 let filtrados = this.listaOriginal.filter(c => {
-                    // Filtros Básicos
+                    // Filtros normais
                     if (vendedor && c.vendedor !== vendedor) return false;
                     if (estado && c.estado !== estado) return false;
                     
@@ -1891,28 +1994,40 @@
                         if (!paisesDoContinente.includes(this._normalizar(c.pais))) return false;
                     }
                     
-                    if (palavras.length > 0) {
-                        const textoCedula = this._normalizar(`${c.pais} ${c.vendedor} ${c.descricao} ${c.catalogo} ${c.ano} ${c.estado}`);
-                        if (!palavras.every(p => textoCedula.includes(p))) return false;
+                    // 2. A BUSCA
+                    if (termoBusca !== "") {
+                        // Verifica se o termo digitado bate EXATAMENTE com o país
+                        // Ou se está na descrição, ano, catálogo, lote...
+                        const campoPais = this._normalizar(c.pais || "");
+                        const campoDescricao = this._normalizar(c.descricao || "");
+                        const campoCatalogo = this._normalizar(c.catalogo || "");
+                        const campoAno = this._normalizar(c.ano || "");
+                        const campoLote = this._normalizar(c.ref_lote || "");
+
+                        // O termo precisa estar em um desses campos (Vendedor foi removido)
+                        const encontrou = campoPais.includes(termoBusca) || 
+                                          campoDescricao.includes(termoBusca) || 
+                                          campoCatalogo.includes(termoBusca) || 
+                                          campoAno.includes(termoBusca) || 
+                                          campoLote.includes(termoBusca);
+
+                        if (!encontrou) {
+                            return false;
+                        }
                     }
+                    
                     return true;
                 });
 
-                // Filtro Dinâmico
+                // Filtro Dinâmico (Qtd/Custo/Ano)
                 if (tipoFiltro === 'quantidade') {
-                    // Se for quantidade, calcula o total de cada país
                     const somaPorPais = {};
                     filtrados.forEach(c => {
                         if (!somaPorPais[c.pais]) somaPorPais[c.pais] = 0;
                         somaPorPais[c.pais] += (c.quantidade || 1);
                     });
-
-                    // Filtra apenas os países que estão dentro do limite
-                    filtrados = filtrados.filter(c => {
-                        return somaPorPais[c.pais] >= valorMin && somaPorPais[c.pais] <= valorMax;
-                    });
+                    filtrados = filtrados.filter(c => somaPorPais[c.pais] >= valorMin && somaPorPais[c.pais] <= valorMax);
                 } else {
-                    // Filtro por Custo ou Ano (Linha a Linha)
                     filtrados = filtrados.filter(c => {
                         let valorParaComparar = 0;
                         if (tipoFiltro === 'custo') {
@@ -1942,10 +2057,10 @@
 
                 const modoGrafico = this.ui.selectAgrupamento.value;
                 atualizarGrafico(filtrados, modoGrafico);
-                if (valoresOcultos) toggleValores(); // Se o olhinho estava ativo, esconde de novo após filtrar 
+                if (valoresOcultos) toggleValores(); 
             }
         }
-        
+
         function abrirModalExportacao() {
             document.getElementById('modal-exportacao').style.display = 'flex';
         }
@@ -2251,6 +2366,7 @@
                         <td><input type="number" class="edit-qtd" value="${c.quantidade}" style="width:50px;"></td>
                         <td><input type="number" class="edit-martelo" value="${c.martelo}" step="0.01" style="width:80px;"></td>
                         <td><input type="number" class="edit-taxa" value="${c.taxa_leilao || 0}" step="0.01" style="width:60px;"></td>
+                        <td><button class="btn-del-linha" onclick="this.closest('tr').remove()" title="Excluir Cédula">✖</button></td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -2270,14 +2386,19 @@
         async function salvarEdicaoLote() {
             const linhas = document.querySelectorAll('#corpo-tabela-edicao tr');
             const cedulasAtualizadas = [];
+            let houveExclusao = false;
 
             linhas.forEach(li => {
-                const id = li.querySelector('.edit-pais').getAttribute('data-id');
+                const inputPais = li.querySelector('.edit-pais');
+                if (!inputPais) return;
+                
+                const id = inputPais.getAttribute('data-id') || 'new_teste';
+
                 cedulasAtualizadas.push({
                     id: id,
                     data_compra: li.querySelector('.edit-data').value,
                     ref_lote: li.querySelector('.edit-ref').value,
-                    pais: li.querySelector('.edit-pais').value,
+                    pais: inputPais.value || 'Desconhecido',
                     valor_facial: li.querySelector('.edit-valor').value,
                     catalogo: li.querySelector('.edit-pick').value,
                     ano: li.querySelector('.edit-ano').value,
@@ -2288,6 +2409,15 @@
                 });
             });
 
+            // 👇 VERIFICAÇÃO DE EXCLUSÃO (Dupla Confirmação) 👇
+            const resLote = await fetch(`/api/lote/${loteEmEdicaoId}`);
+            const dadosLoteOriginal = await resLote.json();
+            
+            if (cedulasAtualizadas.length < dadosLoteOriginal.cedulas.length) {
+                houveExclusao = true;
+            }
+            // 👆 FIM DA VERIFICAÇÃO 👆
+
             const dados = {
                 vendedor: document.getElementById('edit-vendedor').value,
                 origem: document.getElementById('edit-origem').value,
@@ -2295,26 +2425,55 @@
                 cedulas: cedulasAtualizadas
             };
 
-            try {
-                const res = await fetch(`/api/editar_lote/${loteEmEdicaoId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(dados)
-                });
-                const data = await res.json();
+            // Função interna que faz o envio real para o servidor
+            const executarSalvamento = async () => {
+                try {
+                    const res = await fetch(`/api/editar_lote/${loteEmEdicaoId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(dados)
+                    });
+                    const data = await res.json();
 
-                if (res.ok) {
-                    mostrarAlerta("✅ Sucesso", data.mensagem, "sucesso");
-                    fecharModalEdicao();
-                    carregarDadosPesquisa(); // Recarrega a lista
-                } else {
-                    mostrarAlerta("❌ Erro", data.erro, "erro");
+                    if (res.ok) {
+                        mostrarAlerta("✅ Sucesso", data.mensagem, "sucesso");
+                        fecharModalEdicao();
+                       
+                        fetch('/api/pesquisar', { cache: 'no-store' })
+                            .then(res => res.json())
+                            .then(data => {
+                                if (data.cedulas) {
+                                    listaCompletaPesquisa = data.cedulas;
+                                    renderizarListaPesquisa(listaCompletaPesquisa);
+                                    
+                                    const modoPadrao = document.getElementById('filtro-agrupamento-grafico').value || 'pais_valor';
+                                    atualizarGrafico(listaCompletaPesquisa, modoPadrao);
+                                    
+                                    if (filtroManager) {
+                                        filtroManager.listaOriginal = listaCompletaPesquisa;
+                                        filtroManager._preencherVendedores();
+                                    }
+                                }
+                            });
+                    } else {
+                        mostrarAlerta("❌ Erro", data.erro, "erro");
+                    }
+                } catch (e) {
+                    mostrarAlerta("❌ Erro", "Falha ao conectar com o servidor.", "erro");
                 }
-            } catch (e) {
-                mostrarAlerta("❌ Erro", "Falha ao conectar com o servidor.", "erro");
+            };
+
+            // 👇 LÓGICA DA DUPLA CONFIRMAÇÃO 👇
+            if (houveExclusao) {
+                mostrarConfirmacao(
+                    "⚠️ Atenção: Exclusão de Cédulas", 
+                    "Você removeu uma ou mais cédulas desta lista. Ao salvar, essas cédulas serão APAGADAS PERMANENTEMENTE do banco de dados. Deseja continuar?",
+                    executarSalvamento
+                );
+            } else {
+                executarSalvamento();
             }
         }
-
         document.addEventListener('DOMContentLoaded', () => {
             // Inicializa a classe de filtros
             filtroManager = new FiltroManager(); 
@@ -2485,8 +2644,34 @@
             }
         });
 
-        function colarPrint() {
-            mostrarAlerta("📋 Pronto para colar!", "Tire o print da tela (Win+Shift+S) e aperte Ctrl+V agora.", "aviso");
+        function adicionarLinhaEdicao() {
+            const tbody = document.getElementById('corpo-tabela-edicao');
+            const tr = document.createElement('tr');
+            
+            const tempId = 'new_teste'; 
+            const estados = ["FE", "S/FE", "S", "MBC/S", "MBC", "BC/MBC", "BC", "R", "UTG"];
+
+            tr.innerHTML = `
+                <td><input type="text" class="edit-data" placeholder="DD/MM/AAAA" style="width:90px;"></td>
+                <td><input type="text" class="edit-ref" placeholder="Lote" style="width:60px;"></td>
+                <td><input type="text" class="edit-pais" placeholder="País" style="width:90px;" data-id="${tempId}"></td>
+                <td><input type="text" class="edit-valor" placeholder="Valor" style="width:80px;"></td>
+                <td><input type="text" class="edit-pick" placeholder="Pick" style="width:60px;"></td>
+                <td><input type="text" class="edit-ano" placeholder="Ano" style="width:50px;"></td>
+                <td>
+                    <select class="edit-estado" style="width:70px;">
+                        ${estados.map(e => `<option value="${e}">${e}</option>`).join('')}
+                    </select>
+                </td>
+                <td><input type="number" class="edit-qtd" value="1" style="width:50px;"></td>
+                <td><input type="number" class="edit-martelo" value="0" step="0.01" style="width:80px;"></td>
+                <td><input type="number" class="edit-taxa" value="0" step="0.01" style="width:60px;"></td>
+                <td><button type="button" class="btn-del-linha" onclick="this.closest('tr').remove()" title="Remover Cédula">✖</button></td>
+            `;
+            
+            tbody.appendChild(tr);
+            const divTabela = tbody.closest('div');
+            if (divTabela) divTabela.scrollTop = divTabela.scrollHeight;
         }
         
 
