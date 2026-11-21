@@ -160,13 +160,14 @@ def create_app():
                 return jsonify({'cedulas': cedulas, 'tipo': 'pdf'}), 200
 
             elif extensao in ['png', 'jpg', 'jpeg']:
+                print("⏳ INICIANDO OCR...") # Log para o terminal
                 processador_img = ProcessadorImagem(arquivo)
                 texto_bruto = processador_img.extrair_texto()
+                print("✅ OCR FINALIZADO.") # Log para o terminal
+                
                 processador_txt = ProcessadorTexto(texto_bruto)
                 cedulas = processador_txt.extrair_cedulas()
                 
-                # 👇 Se não achou nenhuma cédula, retorna 200 mas com a lista vazia e o texto bruto
-                # Isso permite que o JS mostre o texto no console para você debugar
                 return jsonify({
                     'cedulas': cedulas, 
                     'tipo': 'imagem', 
@@ -180,6 +181,7 @@ def create_app():
                 return jsonify({'erro': 'Formato não suportado. Envie PDF, Imagem ou TXT.'}), 400
 
         except Exception as e:
+            print(f"❌ ERRO NO OCR: {str(e)}")
             return jsonify({'erro': f'Erro ao processar arquivo: {str(e)}'}), 500    
     
     @app.route('/salvar_lote', methods=['POST'])

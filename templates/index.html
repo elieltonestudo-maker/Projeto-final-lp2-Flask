@@ -969,6 +969,7 @@
                     tbody.appendChild(tr);
                 });
                 atualizarNumeracao(); recalcularTabela();
+                
                 const spanArquivo = document.getElementById('nome-arquivo-importado');
                 spanArquivo.innerText = `📄 ${nomeNovoArquivo}`;
                 spanArquivo.style.color = "var(--gold-accent)";
@@ -2604,41 +2605,61 @@
             }
         });
 
+        // --- FUNÇÃO DO BOTÃO "COLAR PRINT" ---
+        function colarPrint() {
+            mostrarAlerta("📋 Pronto para colar!", "Tire o print da tela (Win+Shift+S) e aperte Ctrl+V agora.", "aviso");
+        }
+
         // --- LÓGICA DE COLAR IMAGEM (CTRL + V) ---
         document.addEventListener('paste', async (e) => {
-            // Pega os itens que foram colados
             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
             
             for (let index in items) {
                 const item = items[index];
                 if (item.kind === 'file' && item.type.startsWith('image/')) {
-                    e.preventDefault(); // Evita comportamentos estranhos
+                    e.preventDefault(); 
                     
-                    const arquivo = item.getAsFile(); // Transforma em arquivo
+                    const arquivo = item.getAsFile(); 
                     const formData = new FormData();
                     formData.append('arquivo', arquivo, 'print_colado.png');
                     
-                    mostrarAlerta("⏳ Processando", "Lendo a imagem colada...", "aviso");
+                    mostrarAlerta("⏳ Processando", "Lendo a imagem... (Pode demorar alguns segundos)", "aviso");
                     
                     try {
                         const res = await fetch('/processar_arquivo_drop', { method: 'POST', body: formData });
                         const data = await res.json();
-                        
+
                         if (res.ok) {
                             if (data.cedulas && data.cedulas.length > 0) {
-                                renderizarTabela(data.cedulas);
-                                document.getElementById('nome-arquivo-importado').innerText = `📋 Print Colado`;
-                                mostrarAlerta("✅ Sucesso", `${data.cedulas.length} cédulas importadas!`, "sucesso");
+                                
+                                // 👇 AQUI ESTÁ A MÁGICA: Verifica se já tem linhas na tabela 👇
+                                const temLinhas = document.getElementById('corpo-tabela').querySelectorAll('tr').length > 0;
+                                
+                                if (temLinhas) {
+                                    // Se já tem, guarda os dados e abre o modal de escolha
+                                    dadosNovaImportacao = data.cedulas;
+                                    tipoNovaImportacao = 'imagem';
+                                    nomeNovoArquivo = "Print Colado";
+                                    abrirModalImportacao();
+                                } else {
+                                    // Se a tabela está vazia, joga direto
+                                    renderizarTabela(data.cedulas);
+                                    document.getElementById('nome-arquivo-importado').innerText = `📋 Print Colado`;
+                                    mostrarAlerta("✅ Sucesso", `${data.cedulas.length} cédulas importadas!`, "sucesso");
+                                }
                             } else {
-                                // Se falhar, mostra o texto bruto (o que o EasyOCR leu)
                                 console.log("Texto lido pela IA:", data.texto_bruto);
                                 mostrarAlerta("❌ Atenção", "A IA leu a imagem, mas não encontrou o padrão de cédulas.", "erro");
                             }
                         } else {
-                            mostrarAlerta("❌ Erro", data.erro, "erro");
+                            mostrarAlerta("❌ Erro", data.erro || "Erro desconhecido", "erro");
                         }
                     } catch (err) {
-                        mostrarAlerta("❌ Erro", "Falha ao processar a imagem colada.", "erro");
+                        console.error("❌ ERRO:", err);
+                        mostrarAlerta("❌ Erro", "Falha ao processar a imagem.", "erro");
+                    } finally {
+                        // Fecha o alerta de "Processando"
+                        fecharAlerta();
                     }
                 }
             }
